@@ -44,7 +44,7 @@ case "$result" in
     ;;
   failure|failed|error|cancelled|timed_out)
     sensors_emit "$fingerprint" "$result" violation "$fields" "" \
-      "the main build is red" "the build failed: ${job} / ${case_name}"
+      "the build is red: ${job}/${case_name}" "the build failed: ${job} / ${case_name}"
     ;;
   *)
     sensors_emit_error "$fields" "unreadable-build-result"

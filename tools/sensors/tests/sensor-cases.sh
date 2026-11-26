@@ -85,6 +85,9 @@ SENSOR_CASES=(
   'sensors#metadataDriftRow'
   'sensors#metadataDriftClearsUnderItsOwnIdentity'
   'sensors#brokenMainFingerprintDistinguishesCauses'
+  'sensors#twoDriftedItemsFileUnderTwoTitles'
+  'sensors#twoOversizedFilesFileUnderTwoTitles'
+  'sensors#twoFailingCasesFileUnderTwoTitles'
   'sensors#prConflictsOnlyOwnPRs'
   'sensors#brokenMainGreenReportsClear'
   'sensors#aFailedScanIsItsOwnCondition'
@@ -187,6 +190,9 @@ sensor_run_case() {
     'sensors#metadataDriftRow') case_sensors_metadataDriftRow ;;
     'sensors#metadataDriftClearsUnderItsOwnIdentity') case_sensors_metadataDriftClearsUnderItsOwnIdentity ;;
     'sensors#brokenMainFingerprintDistinguishesCauses') case_sensors_brokenMainFingerprintDistinguishesCauses ;;
+    'sensors#twoDriftedItemsFileUnderTwoTitles') case_sensors_twoDriftedItemsFileUnderTwoTitles ;;
+    'sensors#twoOversizedFilesFileUnderTwoTitles') case_sensors_twoOversizedFilesFileUnderTwoTitles ;;
+    'sensors#twoFailingCasesFileUnderTwoTitles') case_sensors_twoFailingCasesFileUnderTwoTitles ;;
     'sensors#prConflictsOnlyOwnPRs') case_sensors_prConflictsOnlyOwnPRs ;;
     'sensors#brokenMainGreenReportsClear') case_sensors_brokenMainGreenReportsClear ;;
     'sensors#aFailedScanIsItsOwnCondition') case_sensors_aFailedScanIsItsOwnCondition ;;
@@ -395,6 +401,12 @@ condition_creates() { # <log>
   count=$(grep -- 'issue create' "$1" 2>/dev/null | tr -d '\\' | grep -v 'sensor record:' \
     | grep -v 'filing-summary' | grep -c . 2>/dev/null || true)
   printf '%s\n' "${count:-0}"
+}
+
+# The titles a run's creates carried, one per line. The stub records each argument with its spaces escaped, so
+# `log_text` unescapes them first and the title is then the text between `--title ` and the next flag.
+create_titles() { # <log>
+  log_text "$1" | grep -- 'issue create' | sed -n 's/^.*--title //p' | sed 's/ --\(body\|body-file\|label\).*$//'
 }
 
 # The creates a run made that are a row's filing summary rather than a condition: the summary's own marker says
@@ -2761,6 +2773,90 @@ case_sensors_coverageRow() {
     sensor_engine run.sh --only coverage --apply --input "$report" 2>&1)
   assert_eq "0" "$(condition_creates "$log")" "the same module is not filed a second condition"
   assert_contains "$(cat "$log")" "issue comment 111" "the measurement is recorded on the existing issue"
+}
+
+# Two conditions of one row, filed by one run, are two titles a reader can tell apart — the item and the
+# disagreement it carries — while each keeps the identity it already had (issue #1034; `backlog-sensors`,
+# "A filing's title names the drift it reports"). A constant title makes a reader open both items to learn
+# they are two repairs, and makes the queue count two where a person counts a finding per title.
+case_sensors_twoDriftedItemsFileUnderTwoTitles() {
+  local dir log out settled fp278 fp279
+  settled='<!-- prio: band=p3 score=5 sev=3 reach=1 conf=2 occ=1 basis=deadbeef at=2026-10-24 -->'
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  issues_fixture "$dir" "$(jq -nc --arg settled "$settled" '[
+    {number: 278, title: "a band label and no marker", state: "OPEN", stateReason: "",
+     body: "an item the pass wrote, then a hand edit removed the marker line",
+     labels: [{name: "class/bug"}, {name: "prio/p3"}]},
+    {number: 279, title: "a marker and no band label", state: "OPEN", stateReason: "",
+     body: ("an item the pass wrote, then a hand edit removed the band label\n\n" + $settled),
+     labels: [{name: "class/bug"}]}
+  ]')"
+
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only metadata-invariant --apply 2>&1)
+
+  assert_eq "2" "$(condition_creates "$log")" "the two drifted items are two conditions: $out"
+  assert_contains "$(create_titles "$log")" "#278: label-without-marker" \
+    "the first drift's title names the item and the disagreement it carries: $(create_titles "$log")"
+  assert_contains "$(create_titles "$log")" "#279: marker-without-label" \
+    "the second drift's title names its own item and disagreement"
+
+  # Two titles, and still two identities: the item and the disagreement each filing carries is its own, which
+  # is why the second was filed at all rather than refused as the first one's duplicate.
+  fp278=$(fingerprint_of issue 278 code label-without-marker)
+  fp279=$(fingerprint_of issue 279 code marker-without-label)
+  assert_contains "$(log_text "$log")" "<!-- fingerprint: $fp278 -->" \
+    "the first drift keeps the identity of its own item and disagreement"
+  assert_contains "$(log_text "$log")" "<!-- fingerprint: $fp279 -->" \
+    "the second drift keeps its own identity, so two filings are two conditions"
+}
+
+# The same rule over the row that files by path: two files past the bound are two titles, and the title is
+# the file and its line count rather than one constant sentence per row (issue #1034).
+case_sensors_twoOversizedFilesFileUnderTwoTitles() {
+  local dir log out
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  mkdir -p "$dir/repo/app/src/main/java"
+  seq 1 1600 | sed 's/^/\/\/ line /' > "$dir/repo/app/src/main/java/Big.kt"
+  seq 1 1700 | sed 's/^/\/\/ line /' > "$dir/repo/app/src/main/java/Huge.java"
+  git -C "$dir/repo" init -q -b main >/dev/null 2>&1 || fail "could not create the fixture repository"
+  git_commit "$dir/repo" one
+  # The engine is the real one, linked into the fixture tree: the run resolves its own row's command, its
+  # registry and its profile against the root it was started in, and that root has to be the tree the row
+  # measures. The link is not committed, so the row never counts it.
+  ln -s "$SENSORS_REPO_ROOT/tools" "$dir/repo/tools"
+  issues_fixture "$dir" '[]'
+
+  out=$(cd "$dir/repo" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only source-size --apply 2>&1)
+
+  assert_eq "2" "$(condition_creates "$log")" "the two files past the bound are two conditions: $out"
+  assert_contains "$(create_titles "$log")" "app/src/main/java/Big.kt: 1600 lines" \
+    "the first file's title names the path and its line count: $(create_titles "$log")"
+  assert_contains "$(create_titles "$log")" "app/src/main/java/Huge.java: 1700 lines" \
+    "the second file's title names its own path and line count"
+}
+
+# …and over the row that files by failing job and case: two causes of a red main are two titles, because the
+# two items are two repairs even while the sentence "the main build is red" is the same for both (#1034).
+case_sensors_twoFailingCasesFileUnderTwoTitles() {
+  local dir log artifact out
+  dir=$(scratch); log="$dir/calls.log"; : > "$log"
+  issues_fixture "$dir" '[]'
+  artifact="$dir/gate-result.json"
+
+  jq -n '{result: "FAILURE", job: "app:testMobileDebugUnitTest", case: "com.naviveylin.FooTest.bar"}' > "$artifact"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only broken-main --apply --input "$artifact" 2>&1)
+  jq -n '{result: "FAILURE", job: "app:testMobileDebugUnitTest", case: "com.naviveylin.FooTest.baz"}' > "$artifact"
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only broken-main --apply --input "$artifact" 2>&1)
+
+  assert_eq "2" "$(condition_creates "$log")" "two failing cases are two conditions: $out"
+  assert_contains "$(create_titles "$log")" "the build is red: app:testMobileDebugUnitTest/com.naviveylin.FooTest.bar" \
+    "the first cause's title names the job and the case: $(create_titles "$log")"
+  assert_contains "$(create_titles "$log")" "the build is red: app:testMobileDebugUnitTest/com.naviveylin.FooTest.baz" \
+    "the second cause's title names its own job and case"
 }
 
 case_sensors_brokenMainGreenReportsClear() {

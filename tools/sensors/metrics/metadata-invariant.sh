@@ -67,7 +67,7 @@ while IFS=$'\t' read -r issue code detail; do
   fingerprint=$(sensors_fingerprint "$fields" "issue code")
   present="$present $fingerprint"
   sensors_emit "$fingerprint" "drifted" violation "$fields" "" \
-    "an item's own record and its label disagree" \
+    "#${issue}: ${code}" \
     "issue #${issue}: ${code} (${detail}), so a per-item invariant of the tracker has drifted"
   findings=$((findings + 1))
 done <<< "$(jq -r '.violations[]? | [.issue, .code, .detail // ""] | @tsv' <<< "$report")"

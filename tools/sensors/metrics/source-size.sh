@@ -56,7 +56,7 @@ while IFS="$tab" read -r lines path; do
   fields=$(jq -nc --arg path "$path" '{path: $path}')
   fingerprint=$(sensors_fingerprint "$fields" "path")
   sensors_emit "$fingerprint" "$lines" violation "$fields" "" \
-    "the source file is past the size bound" \
+    "${path}: ${lines} lines" \
     "$path is $lines lines, past the row's bound of ${threshold}"
   findings=$((findings + 1))
 done <<< "$ranked"

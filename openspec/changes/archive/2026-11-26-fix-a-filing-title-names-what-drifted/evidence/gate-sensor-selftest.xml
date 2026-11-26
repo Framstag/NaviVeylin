@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/sensors/tests/sensor-selftest.sh" tests="97" failures="0" errors="0" time="126" run="873711">
+  <system-out>PASS workflow#theFindingsRecordIsFetchedBeforeItsRowsRun PASS workflow#theFindingsReadinessIsReportedApart sensor-selftest: all 97 cases passed (JDK 21, offline, no token)</system-out>
+</testsuite>

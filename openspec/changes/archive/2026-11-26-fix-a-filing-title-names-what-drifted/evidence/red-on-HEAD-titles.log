@@ -1,0 +1,13 @@
+red on HEAD fa45813e4fd4b79a8becf27b4ecc1ce07cf1a22e 2026-11-26T07:46:41Z
+  the first drift's title names the item and the disagreement it carries: an item's own record and its label disagree
+an item's own record and its label disagree: '#278: label-without-marker' not found in: an item's own record and its label disagree
+an item's own record and its label disagree
+FAIL sensors#twoDriftedItemsFileUnderTwoTitles
+  the first file's title names the path and its line count: the source file is past the size bound
+the source file is past the size bound: 'app/src/main/java/Big.kt: 1600 lines' not found in: the source file is past the size bound
+the source file is past the size bound
+FAIL sensors#twoOversizedFilesFileUnderTwoTitles
+  the first cause's title names the job and the case: the main build is red
+the main build is red: 'the build is red: app:testMobileDebugUnitTest/com.naviveylin.FooTest.bar' not found in: the main build is red
+the main build is red
+FAIL sensors#twoFailingCasesFileUnderTwoTitles

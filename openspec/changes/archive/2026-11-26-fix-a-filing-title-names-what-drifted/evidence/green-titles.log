@@ -1,0 +1,3 @@
+PASS sensors#twoDriftedItemsFileUnderTwoTitles
+PASS sensors#twoOversizedFilesFileUnderTwoTitles
+PASS sensors#twoFailingCasesFileUnderTwoTitles

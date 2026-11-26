@@ -1242,9 +1242,12 @@ project_state_differs() { # <before> <after> → 0 when a path some child could 
 LOOP_CORE_DIR="${LOOP_CORE_DIR:-$LOOP_DIR/core}"
 LOOP_CORE_CACHE="${LOOP_CORE_CACHE:-${TMPDIR:-/tmp}/loop-core}"
 
-loop_core_digest() { # → the digest of the core's sources, one line, taken as the issue tooling takes it
+loop_core_digest() { # → the digest of the typed half's sources, one line, taken as the issue tooling takes it
   local files
-  files=$(find "$LOOP_CORE_DIR" -maxdepth 1 -name '*.java' 2>/dev/null | sort)
+  # `-H` so the starting point is read through a symlink: a caller may hand the core in as a link to a directory
+  # somewhere else (the suite's nested trees link every engine file, `nested_tree`), and `find`'s default does not
+  # descend into a link it was given — the digest was empty there, which read as "this core does not compile".
+  files=$(find -H "$LOOP_CORE_DIR" -maxdepth 1 -name '*.java' 2>/dev/null | sort)
   [ -n "$files" ] || return 1
   # shellcheck disable=SC2086
   if command -v sha256sum >/dev/null 2>&1; then

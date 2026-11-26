@@ -1441,6 +1441,7 @@ loop_run_shell_case() {
     'run#aConvertedSiteRendersFromItsRecord') fn=case_run_aConvertedSiteRendersFromItsRecord ;;
     'run#aFreeTextReasonSurvivesTheRoundTrip') fn=case_run_aFreeTextReasonSurvivesTheRoundTrip ;;
     'core#theDigestIsTheCompileKey') fn=case_core_theDigestIsTheCompileKey ;;
+    'core#theDigestReadsASymlinkedCore') fn=case_core_theDigestReadsASymlinkedCore ;;
     'core#oneCompilePerDigest') fn=case_core_oneCompilePerDigest ;;
     'core#aMissingCompilerIsOneRefusal') fn=case_core_aMissingCompilerIsOneRefusal ;;
     'core#theAnswerIsOneJsonDocument') fn=case_core_theAnswerIsOneJsonDocument ;;
@@ -25405,6 +25406,24 @@ case_core_theDigestIsTheCompileKey() {
   assert_eq "17-$digest" "$(basename -- "$dir1")" "the cache directory is the release and the sources' digest"
   compiles=$(grep -c . "$probe/compiles" 2>/dev/null || printf '0')
   assert_eq "1" "$compiles" "two calls with the same sources compiled once"
+  return 0
+}
+
+# The digest is taken through the directory's link, not of the link: `find` does not descend into a starting point
+# that is a symlink unless it is asked to (`-H`), so a core handed in as one answered an empty digest and read as "this
+# core does not compile". The suite's own nested engines are built exactly that way (`nested_tree` links every engine
+# file), which is where the defect was measured (issue #1037's gate, 2026-11-26).
+case_core_theDigestReadsASymlinkedCore() {
+  # files: tools/loop/core/ tools/loop/lib.sh
+  local real link direct via
+  real="$LOOP_CASE_TMP/core-real"; link="$LOOP_CASE_TMP/core-link"
+  mkdir -p "$real" || fail "cannot make a copy of the core's sources: $real"
+  cp "$LOOP_CORE_DIR"/*.java "$real/" || fail "cannot copy the core's sources into $real"
+  ln -s "$real" "$link" || fail "cannot link $link to $real"
+  direct=$(LOOP_CORE_DIR="$real" loop_core_digest) || fail "the real directory has no digest"
+  via=$(LOOP_CORE_DIR="$link" loop_core_digest) \
+    || fail "a core reached through a symlink answers no digest, so it reads as one that does not compile"
+  assert_eq "$direct" "$via" "the link and the directory it names hold the same sources, so they are one digest"
   return 0
 }
 

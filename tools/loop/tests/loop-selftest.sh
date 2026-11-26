@@ -464,7 +464,9 @@ core_ensure() {
   # already uses (`tools/loop/lib.sh`, `loop_core_classes`): a case that asks for it runs the classes this driver
   # verified, and a second call — this suite's or the next run's — compiles nothing. One line, one refusal, when no
   # compiler answers, because a suite that cannot ask the core for its case list is a suite that would run half of
-  # its cases and report itself green.
+  # its cases and report itself green. The core is read through the engine's own path, which this suite builds by
+  # *linking* every engine file into a nested tree (`nested_tree`): `loop_core_digest` follows the link for exactly
+  # that reason, and `core#theDigestReadsASymlinkedCore` holds it.
   LOOP_CORE_CLASSES=$(loop_core_classes) || {
     echo "loop-selftest: the loop's Java core does not compile — JDK 17 or newer (javac) is required" >&2
     exit 1

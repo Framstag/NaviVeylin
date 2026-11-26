@@ -30,32 +30,10 @@ public final class LoopCore {
     static final int REFUSED = 5;
 
     /**
-     * The cases the core owns, in the order the suite lists them.
-     *
-     * The list lives here, in the core, and the suite asks for it (<code>loop_core --cases</code>) rather than
-     * spelling it a second time: a case that exists in one place and not the other is a case that exists but does
-     * not run, which is the failure the driver's declaration check exists for (issue #929). The <b>bodies</b> are
-     * shell cases in {@code tools/loop/tests/loop-cases.sh} — they drive this binary against fixtures and assert the
-     * document it answers, because the suite already has one selection, one summary and one offline gate
-     * (design D3), and a second harness inside the core would be a second gate.
-     *
-     * Each of those bodies opens with a {@code # files:} line naming {@code tools/loop/core/}: a case about the core
-     * is affected by every file in it, and a declaration that omits it is refused by the case-list check.
+     * The cases the core owns, in the order the suite lists them — held in {@link CaseList}, in a file of their own,
+     * because they are the tooling's own vocabulary rather than code (that file says why they are separated).
      */
-    private static final List<String> CASES = List.of(
-            "core#theDigestIsTheCompileKey",
-            "core#oneCompilePerDigest",
-            "core#aMissingCompilerIsOneRefusal",
-            "core#theAnswerIsOneJsonDocument",
-            "core#aMalformedInputIsARefusal",
-            "core#noPartialParseOnFailure",
-            "core#theStateIsWrittenByTheCore",
-            "core#theStateAReadCannotParseIsRefused",
-            "core#thePortabilityCheckReadsTheCore",
-            "core#theCoresCasesDeclareTheCore",
-            "core#theCoreListsItsOwnCases",
-            "core#oneSummaryCarriesBothSources",
-            "core#aCoreCaseDeclaresItsFiles");
+    private static final List<String> CASES = CaseList.NAMES;
 
     private LoopCore() {
     }

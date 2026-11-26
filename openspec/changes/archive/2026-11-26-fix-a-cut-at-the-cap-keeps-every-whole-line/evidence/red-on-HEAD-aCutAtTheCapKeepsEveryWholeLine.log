@@ -1,0 +1,7 @@
+evidence#aCutAtTheCapKeepsEveryWholeLine|   and the whole line the cap ends — the line a cap on a boundary dropped: 'NOTE: two' not found in: BLOCKING: one
+evidence#aCutAtTheCapKeepsEveryWholeLine| [LOOP-CUT: the findings above are quoted to 24 bytes; the whole of them stands at pre-gate-review.md]
+--- evidence#aCutAtTheCapKeepsEveryWholeLine[0] (exit 1)
+  and the whole line the cap ends — the line a cap on a boundary dropped: 'NOTE: two' not found in: BLOCKING: one
+[LOOP-CUT: the findings above are quoted to 24 bytes; the whole of them stands at pre-gate-review.md]
+FAIL evidence#aCutAtTheCapKeepsEveryWholeLine
+loop-selftest: 1 of 1 cases failed

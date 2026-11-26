@@ -1,0 +1,7 @@
+loop-mutations: selected 1 of 471 records (labels: 1046.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-mutations.jo3x4M
+RED    1046.1  evidence#aCutAtTheCapKeepsEveryWholeLine   (the line the cap ends, so the quote drops the last finding line it kept whatever byte the cap stopped on — the unconditional last-line drop this item removed (issue #1046))
+       2026-11-26T02:19:46Z — case log line 1: and the whole line the cap ends — the line a cap on a boundary dropped: 'NOTE: two' not found in: BLOCKING: one
+restore 1046.1 evidence#aCutAtTheCapKeepsEveryWholeLine green again
+
+red-when-mutated: 1 · not-noticed: 0 · restore-failures: 0

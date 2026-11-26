@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="loop-selftest.sh --case evidence#aCutAtTheCapKeepsEveryWholeLine" tests="1" failures="1" errors="0">
+  <testcase name="evidence#aCutAtTheCapKeepsEveryWholeLine">
+    <failure>and the whole line the cap ends — the line a cap on a boundary dropped: 'NOTE: two' not found in: BLOCKING: one</failure>
+  </testcase>
+  <system-out>transcribed from red-on-HEAD-aCutAtTheCapKeepsEveryWholeLine.log, the run of this case on the base 62d62e46 with the engine unmodified (the log is the record)</system-out>
+</testsuite>

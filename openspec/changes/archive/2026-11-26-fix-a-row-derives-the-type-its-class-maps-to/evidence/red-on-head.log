@@ -1,0 +1,10 @@
+# Red on the run's base fa45813e4fd4b79a8becf27b4ecc1ce07cf1a22e — taken 2026-11-26T04:39Z
+
+The case and its fixture belong to this delta; the production change is not yet in the tree.
+
+    $ bash tools/sensors/tests/sensor-selftest.sh --case 'Registry#everyRowIsComplete'
+      a class the type mapping does not cover is reported by name: 'row-type-unmapped' not found in:
+    FAIL Registry#everyRowIsComplete
+
+The shell suite prints one `PASS`/`FAIL` line per case and emits no JUnit XML; the lines above are the case's whole
+output, and the case stops at its first failing assertion, so the second new assertion never runs on the base.

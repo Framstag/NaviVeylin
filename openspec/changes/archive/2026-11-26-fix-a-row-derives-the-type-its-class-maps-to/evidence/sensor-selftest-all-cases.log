@@ -1,0 +1,5 @@
+# The whole sensor suite on the change, 2026-11-26T04:55Z
+
+PASS workflow#theFindingsRecordIsFetchedBeforeItsRowsRun
+PASS workflow#theFindingsReadinessIsReportedApart
+sensor-selftest: all 94 cases passed (JDK 21, offline, no token)

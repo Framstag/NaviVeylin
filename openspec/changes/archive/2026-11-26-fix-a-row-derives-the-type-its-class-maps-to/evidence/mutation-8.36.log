@@ -1,0 +1,4 @@
+MUTATION 8.36: Registry#everyRowIsComplete red under the mutation, green after the restore — a class the registry type mapping does not cover is refused before any filing
+
+sensor-mutations: 1 behaved, 0 did not
+mutation exit=0

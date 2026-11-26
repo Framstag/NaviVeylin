@@ -5,8 +5,8 @@
       "id": "loop",
       "kind": "command",
       "command": ["bash", "tools/loop/tests/loop-selftest.sh", "--list"],
-      "groups": ["adapter", "census", "clean", "driver", "evidence", "gate", "labels", "look", "measure", "mutation", "phase", "policy", "prescreen", "prompt", "repeat", "report", "run", "state", "trim", "usage", "worktree"],
-      "why": "`tools/loop/**` is the loop's own suite, the largest case set in the tree; `--list` prints its array, so a case added to the suite is declared on the same commit that adds it."
+      "groups": ["adapter", "census", "check", "clean", "core", "driver", "evidence", "gate", "labels", "look", "measure", "mutation", "phase", "policy", "prescreen", "prompt", "repeat", "report", "run", "state", "trim", "usage", "worktree"],
+      "why": "`tools/loop/**` is the loop's own suite, the largest case set in the tree; `--list` prints its array, so a case added to the suite is declared on the same commit that adds it. `check` and `core` are shared claims, not renames: `check#aRouteSectionResolvesAgainstItsDocument` asserts the loop's own evidence-check route (the `check` group `check-metadata` and `issues-core` also name), and `core#*` asserts `tools/loop/core/` (the `core` group the `gradle` row also names as a module)."
     },
     {
       "id": "sensors",

@@ -1583,7 +1583,17 @@ a review (`--review off`) and stays adoptable.
 The adoption the run takes by itself (`adopt_finished_exclusions`) has a result of its own, and its two refusals are
 not the same fact. A branch whose own evidence does not admit it — no archived change of its own, no green
 verification record, a reviewer's refusal, a round announced and never answered — is the owner's, and the
-pre-screen records it as the decision the run escalates. The green record's origin is the run's own landing step, not the
+pre-screen records it as the decision the run escalates. A green verification record is a measurement that ran and
+passed, in one of the two shapes the gate leaves: a JUnit testsuite with at least one test and no failure, or a shell
+suite's own console log — a suite's worth of `PASS <group>#<case>` verdicts and no `FAIL` line, which is what
+`tools/loop/tests/loop-selftest.sh` prints and what the gate derives its tally from. One case's own log is not the
+change's gate: it is the other half of a red proof, the case a blocked attempt's focused run happened to pass beside the
+gate that refused the change, and reading it as the verification adopted a branch whose own gate read `failures=1`
+(issue #1036, measured on #1006's branch, whose three one-case logs were accepted while its red gate and its
+red-on-HEAD proof sat beside them). What the adoption names as the evidence it checked is the set of records it
+accepted, never the evidence directory's file list, so a red proof beside a green one is not named as verification. The
+cases are `worktree#aSingleCasesLogIsNotTheChangesGate` and `worktree#aShellSuiteLogIsAVerificationRecord`. The green
+record's origin is the run's own landing step, not the
 worker's diligence: the gate writes its tally and its log under the build output `LOOP_GATE_TALLY_DIR` names, which
 is not the change and which the next item's start clears, so `end-item` copies them into the archived change's
 `evidence/` unless that change already answers for its own gate — and a gate that did not pass travels as its verdict

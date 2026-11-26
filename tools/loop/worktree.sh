@@ -434,7 +434,11 @@ verification_record_green() { # <name> <content> → 0 when the record is a meas
       grep -Eq 'errors="[1-9]"' <<< "$2" && return 1
       ;;
     *.log)
-      grep -Eq '^PASS +[A-Za-z][A-Za-z0-9_]*#[A-Za-z]' <<< "$2" || return 1
+      # A suite log is a suite's worth of cases, more than one: one case's own log is the other half of a red proof —
+      # the case a blocked run's focused suite happened to pass beside the gate that refused the change — and reading
+      # it as the verification adopted a branch whose own gate read `failures=1` (issue #1036, measured on #1006's
+      # branch, whose three one-case logs were accepted while its red gate and its red-on-HEAD proof sat beside them).
+      [ "$(grep -E '^PASS +[A-Za-z][A-Za-z0-9_]*#[A-Za-z][A-Za-z0-9_]*' <<< "$2" | sort -u | wc -l)" -ge 2 ] || return 1
       grep -Eq '^FAIL ' <<< "$2" && return 1
       ;;
     *) return 1 ;;
@@ -552,9 +556,9 @@ carried_change() { # <issue> <branch> <base> → the one archived change the bra
 }
 
 # A verification record is a measurement that ran and passed, in either of the two shapes this project's gate leaves:
-# a JUnit testsuite that ran at least one test and passed all of them, and the shell suites' own console log — a
-# `PASS <group>#<case>` line and no `FAIL` line, which is the verdict line `tools/loop/tests/loop-selftest.sh` prints
-# and the gate derives its tally from. The evidence directory of a *finished* attempt holds the red-on-HEAD record
+# a JUnit testsuite that ran at least one test and passed all of them, and the shell suites' own console log — a suite's
+# worth of `PASS <group>#<case>` lines and no `FAIL` line, which is what `tools/loop/tests/loop-selftest.sh` prints and
+# what the gate derives its tally from. The evidence directory of a *finished* attempt holds the red-on-HEAD record
 # that reproduced the defect beside the green one — the two real branches issue #176 was measured on carry exactly
 # that — so "green" cannot mean "no record names a failure": it means "at least one record names a passing run". A
 # blocked attempt carries no such record (its only record is the red one), which is the difference the merge is
@@ -564,17 +568,20 @@ carried_change() { # <issue> <branch> <base> → the one archived change the bra
 # the shell suites, and its green proof is the suite's log, so a branch carrying one read `archived-not-green`
 # however green its gate was — measured 2026-11-21 on three branches one run left behind, each with one archived
 # change, `PASS <group>#<case>` and no XML, while the two branches of the same run that carried an XML read
-# `adoptable`. A log with a `FAIL` line is the red proof and stays one.
-carried_verification() { # <branch> <base> <change> → the evidence it carries, or nothing when it is not green
-  local branch="$1" change="$3" files name passed=0
+# `adoptable`. A log with a `FAIL` line is the red proof and stays one, and a log carrying one case's verdict is the
+# red proof's other half rather than the gate (issue #1036).
+carried_verification() { # <branch> <base> <change> → the evidence it accepted, or nothing when it is not green
+  local branch="$1" change="$3" files name accepted=""
   files=$(gitr ls-tree -r --name-only "$branch" -- "openspec/changes/archive/$change/evidence" 2>/dev/null)
   while IFS= read -r name; do
     [ -n "$name" ] || continue
     verification_record_green "${name##*/}" "$(gitr show "$branch:$name" 2>/dev/null)" || continue
-    passed=1
+    accepted="$accepted${accepted:+,}${name##*/}"
   done <<< "$files"
-  [ "$passed" -eq 1 ] || return 0
-  printf '%s\n' "$files" | sed "s#^openspec/changes/archive/$change/evidence/##" | paste -sd, -
+  # The records it accepted, not the directory's whole list: a red proof named beside the green one reads as
+  # verification in the record the closure carries, which is the second half of the same arm (issue #1036).
+  [ -n "$accepted" ] || return 0
+  printf '%s\n' "$accepted"
 }
 
 # The verdict a run ended on is evidence too (issue #1035). A blocked attempt's evidence is the logs its focused runs

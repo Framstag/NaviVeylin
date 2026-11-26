@@ -128,6 +128,7 @@ LOOP_SHELL_CASES=(
   'worktree#aSetAsideBranchWhosePatchesLandedIsRemoved'
   'worktree#aSetAsideBranchThatCarriesWorkIsNamedNotRemoved'
   'worktree#aShellSuiteLogIsAVerificationRecord'
+  'worktree#aSingleCasesLogIsNotTheChangesGate'
   'worktree#anIdeBuildDirectoryDoesNotBlockTheMerge'
   'worktree#aTrackedEditStillBlocksTheMerge'
   'worktree#theGatesTallyTravelsWithTheChangeItMeasured'
@@ -979,6 +980,7 @@ loop_run_shell_case() {
     'worktree#aSetAsideBranchWhosePatchesLandedIsRemoved') fn=case_worktree_aSetAsideBranchWhosePatchesLandedIsRemoved ;;
     'worktree#aSetAsideBranchThatCarriesWorkIsNamedNotRemoved') fn=case_worktree_aSetAsideBranchThatCarriesWorkIsNamedNotRemoved ;;
     'worktree#aShellSuiteLogIsAVerificationRecord') fn=case_worktree_aShellSuiteLogIsAVerificationRecord ;;
+    'worktree#aSingleCasesLogIsNotTheChangesGate') fn=case_worktree_aSingleCasesLogIsNotTheChangesGate ;;
     'worktree#anIdeBuildDirectoryDoesNotBlockTheMerge') fn=case_worktree_anIdeBuildDirectoryDoesNotBlockTheMerge ;;
     'worktree#aTrackedEditStillBlocksTheMerge') fn=case_worktree_aTrackedEditStillBlocksTheMerge ;;
     'worktree#theGatesTallyTravelsWithTheChangeItMeasured') fn=case_worktree_theGatesTallyTravelsWithTheChangeItMeasured ;;
@@ -4439,8 +4441,8 @@ case_worktree_doesNotAdoptAChangeCreditedToAnotherIssue() {
 # verification record adoption reads was the JUnit shape alone, so such a branch read `archived-not-green` however
 # green its gate was — measured 2026-11-21 on three branches one run left behind, each carrying one archived change
 # and its `PASS` log, and the two branches of the same run that carried an XML read `adoptable` (issue #997). The
-# `PASS` line is the suite's own case verdict and the line the gate derives its tally from, so a log carrying one,
-# and naming no failing case, is a measurement and not prose.
+# `PASS` line is the suite's own case verdict and the line the gate derives its tally from, so a log carrying a suite's
+# worth of them, and naming no failing case, is a measurement and not prose — one case's own log is not (issue #1036).
 case_worktree_aShellSuiteLogIsAVerificationRecord() {
   # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
   local p green red out state
@@ -4451,8 +4453,12 @@ case_worktree_aShellSuiteLogIsAVerificationRecord() {
   git -C "$p" switch -c "$green" >/dev/null 2>&1 || fail "could not create the finished attempt's branch"
   mkdir -p "$p/openspec/changes/archive/2026-01-01-fix-a-shell-suite-log/evidence"
   printf 'archived\n' > "$p/openspec/changes/archive/2026-01-01-fix-a-shell-suite-log/proposal.md"
-  printf 'PASS gate#aStoppedStepIsNamedBeforeItsBound\n' \
+  printf 'PASS gate#aStoppedStepIsNamedBeforeItsBound\nPASS gate#aStepOverItsBoundIsNamed\nPASS worktree#aShellSuiteLogIsAVerificationRecord\n' \
     > "$p/openspec/changes/archive/2026-01-01-fix-a-shell-suite-log/evidence/green-case.log"
+  # The change's own red proof sits beside its green log, so the state can be read for naming what it accepted
+  # (issue #1036: it printed the directory's whole list, red proofs beside the green one).
+  printf 'FAIL worktree#theCaseThatStillFails\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-a-shell-suite-log/evidence/red-proof.log"
   printf 'the shell suite change\n' > "$p/shell-suite-fix.txt"
   git -C "$p" add -A >/dev/null 2>&1
   git -C "$p" commit -qm "fix: the shell suites' change (#24)" >/dev/null 2>&1 ||
@@ -4471,6 +4477,8 @@ case_worktree_aShellSuiteLogIsAVerificationRecord() {
   state=$(printf '%s\n' "$out" | cut -f1)
   assert_eq "adoptable" "$state" "a branch whose green proof is the suite's own PASS log is adoptable: $out"
   assert_contains "$out" "green-case.log" "and the state names the log it read as the verification"
+  assert_eq "green-case.log" "$(printf '%s\n' "$out" | cut -f3)" \
+    "and it names the record it accepted alone, not the red proof beside it"
 
   # A log that names a failing case is the red proof and not a verification — the refusal a red-only XML earns
   # stays exactly where it was.
@@ -4478,9 +4486,44 @@ case_worktree_aShellSuiteLogIsAVerificationRecord() {
     "a log carrying a failing case's line is not a verification record"
 
   out=$(run_worktree "$p" adopt-item 24 "$green" 2>&1) || fail "the adoption of the shell-suite branch failed: $out"
-  assert_contains "$out" "green-case.log" "the adoption names the log as the evidence the branch was checked for"
+  assert_contains "$out" "· evidence green-case.log" "the adoption names the record it accepted alone: $out"
   [ -f "$p/shell-suite-fix.txt" ] || fail "the adopted change never landed on the base"
   return 0
+}
+
+# A suite log is the verification because it carries the suites the change touches; one case's own log is the other half
+# of a red proof — the case the blocked attempt's focused run happened to pass beside the gate that refused the change.
+# The `.log` arm accepted any such file, so a branch whose own gate read `failures=1` was adopted on the strength of the
+# one case its run had passed (issue #1036, measured on #1006's branch: nine evidence files, three one-line logs
+# accepted, `gate-red-policy-case.log` and `red-on-HEAD.log` beside them, and its tail reading `LOOP-VERDICT: blocked`).
+case_worktree_aSingleCasesLogIsNotTheChangesGate() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/pi-child-events.sh tools/tooling.json
+  local p branch out status
+  p=$(new_project)
+  init_state "$p" 1 90
+  branch="fix/issue-26-a-single-cases-log"
+  git -C "$p" switch -c "$branch" >/dev/null 2>&1 || fail "could not create the finished attempt's branch"
+  mkdir -p "$p/openspec/changes/archive/2026-01-01-fix-a-single-cases-log/evidence"
+  printf 'archived\n' > "$p/openspec/changes/archive/2026-01-01-fix-a-single-cases-log/proposal.md"
+  printf 'PASS policy#aRangeReadOfATrackedFileIsRefusedAndALogIsNot\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-a-single-cases-log/evidence/green-policy-case.log"
+  printf 'FAIL policy#theTrackedReadIsRefused\nFAIL policy#aLogIsRead\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-a-single-cases-log/evidence/gate-red-policy-case.log"
+  printf 'FAIL policy#theTrackedReadIsRefused\n' \
+    > "$p/openspec/changes/archive/2026-01-01-fix-a-single-cases-log/evidence/red-on-HEAD.log"
+  printf 'the single-case change\n' > "$p/single-case-fix.txt"
+  git -C "$p" add -A >/dev/null 2>&1
+  git -C "$p" commit -qm "fix: a single case's log (#26)" >/dev/null 2>&1 || fail "could not commit the change"
+  git -C "$p" switch main >/dev/null 2>&1 || fail "could not return to the base"
+
+  out=$(run_worktree "$p" branch-state 26 "$branch" 2>&1)
+  assert_eq "archived-not-green" "$(printf '%s\n' "$out" | cut -f1)" \
+    "one case's own log is not the change's verification: $out"
+  assert_eq "" "$(printf '%s\n' "$out" | cut -f3)" "and the state names no record as the verification"
+
+  out=$(run_worktree "$p" adopt-item 26 "$branch" 2>&1); status=$?
+  assert_eq "5" "$status" "the branch is not adopted on one case's log: $out"
+  [ ! -f "$p/single-case-fix.txt" ] || fail "the branch was merged on one case's log"
 }
 
 case_worktree_theGatesTallyTravelsWithTheChangeItMeasured() {

@@ -490,6 +490,7 @@ LOOP_SHELL_CASES=(
   'driver#aHunkOutsideEveryCaseBodyOwesEveryCase'
   'driver#everyCaseDeclaresTheFilesItCanReach'
   'driver#aCaseWithNoSelectionRowIsRefused'
+  'driver#anArmTableInASecondFileIsCompared'
   'driver#everyEngineScriptIsInTheTable'
   'driver#noEngineFileExceedsItsBound'
   'driver#aFileWithoutABoundIsRefused'
@@ -1348,6 +1349,7 @@ loop_run_shell_case() {
     'driver#aHunkOutsideEveryCaseBodyOwesEveryCase') fn=case_driver_aHunkOutsideEveryCaseBodyOwesEveryCase ;;
     'driver#everyCaseDeclaresTheFilesItCanReach') fn=case_driver_everyCaseDeclaresTheFilesItCanReach ;;
     'driver#aCaseWithNoSelectionRowIsRefused') fn=case_driver_aCaseWithNoSelectionRowIsRefused ;;
+    'driver#anArmTableInASecondFileIsCompared') fn=case_driver_anArmTableInASecondFileIsCompared ;;
     'driver#everyEngineScriptIsInTheTable') fn=case_driver_everyEngineScriptIsInTheTable ;;
     'driver#noEngineFileExceedsItsBound') fn=case_driver_noEngineFileExceedsItsBound ;;
     'driver#aFileWithoutABoundIsRefused') fn=case_driver_aFileWithoutABoundIsRefused ;;
@@ -19988,6 +19990,66 @@ CASES
   assert_contains "$out" 'case stub#lost has a body in loop-cases.sh and no row in LOOP_SHELL_CASES' \
     "and the refusal names the case no selection reaches: $out"
   assert_not_contains "$out" 'PASS ' "and no case runs, so the row that survived cannot read as the suite: $out"
+  return 0
+}
+
+# The three sets are compared over every file the suite reads, not over one path (issue #1107): a tree that moves the
+# dispatch arm table out of its cases file — the direction issue #1102's change takes, the declared set and the arm
+# table moving to `tools/loop/tests/loop-case-index.sh` — leaves a scan that finds bodies and no arms, and the arm half
+# of the guard then compares nothing and exits 0. This case holds the scan to both files: the same nested suite twice,
+# its arm table in the second file beside its cases file, complete in the first run and one arm short in the second.
+case_driver_anArmTableInASecondFileIsCompared() {
+  # files: tools/issues/ tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/loop/
+  local d driver conf index out status
+  d=$(scratch)
+  out=$(nested_suite "$d" <<'CASES'
+LOOP_SHELL_CASES=('stub#kept' 'stub#lost')
+loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
+case_stub_kept() {
+  # files: tools/loop/gate.sh
+  :
+}
+case_stub_lost() {
+  # files: tools/loop/run.sh
+  :
+}
+. "${BASH_SOURCE[0]%/*}/loop-case-index.sh"
+CASES
+) || fail "could not build the nested suite"
+  driver=$(printf '%s\n' "$out" | sed -n 1p)
+  conf=$(printf '%s\n' "$out" | sed -n 2p)
+  index="$d/nested/tools/loop/tests/loop-case-index.sh"
+
+  # The arm table in the second file reaches both rows, so the one case this run selects runs through it.
+  cat > "$index" <<'ARMS'
+loop_run_shell_case() {
+  local fn
+  case "$1" in
+    'stub#kept') fn=case_stub_kept ;;
+    'stub#lost') fn=case_stub_lost ;;
+  esac
+  "$fn"
+}
+ARMS
+  out=$(LOOP_CONF="$conf" bash "$driver" --case 'stub#kept' 2>&1); status=$?
+  assert_eq "0" "$status" "an arm table in a second file is accepted: $out"
+  assert_contains "$out" 'PASS ' "and the case it names runs through it: $out"
+
+  # One arm removed from that second file is the row no filter can reach, which the scan must refuse rather than skip.
+  cat > "$index" <<'ARMS'
+loop_run_shell_case() {
+  local fn
+  case "$1" in
+    'stub#kept') fn=case_stub_kept ;;
+  esac
+  "$fn"
+}
+ARMS
+  out=$(LOOP_CONF="$conf" bash "$driver" --case 'stub#kept' 2>&1); status=$?
+  assert_eq "1" "$status" "a lost arm in the second file is refused, never skipped: $out"
+  assert_contains "$out" 'stub#lost is a row of LOOP_SHELL_CASES with no dispatch arm' \
+    "and the refusal names the row nothing reaches: $out"
+  assert_not_contains "$out" 'PASS ' "and no case runs, so the surviving arm cannot read as the suite: $out"
   return 0
 }
 

@@ -110,6 +110,7 @@ SENSOR_CASES=(
   'sensors#aMultipliedKindSetIsListed'
   'workflow#theFindingsRecordIsFetchedBeforeItsRowsRun'
   'workflow#theFindingsReadinessIsReportedApart'
+  'run#aFilingCarriesTheRowsType'
 )
 
 sensor_cases() {
@@ -143,6 +144,7 @@ sensor_run_case() {
     'report#aFiledRowIsReported') case_report_aFiledRowIsReported ;;
     'report#aTrendIsBetweenOneCondition') case_report_aTrendIsBetweenOneCondition ;;
     'run#aFilingSetsTheBaseline') case_run_aFilingSetsTheBaseline ;;
+    'run#aFilingCarriesTheRowsType') case_run_aFilingCarriesTheRowsType ;;
     'update#commentPostsExactlyOnce') case_update_commentPostsExactlyOnce ;;
     'update#commentRefusesOnPolicyFailure') case_update_commentRefusesOnPolicyFailure ;;
     'close#sensorScopeRefusesAForeignIssue') case_close_sensorScopeRefusesAForeignIssue ;;
@@ -1170,6 +1172,44 @@ case_run_aFilingSetsTheBaseline() {
   assert_eq "0" "$status" "the run succeeds: $out"
   assert_contains "$out" "verdict=violation" "a size past the filing's number is a violation"
   assert_contains "$(cat "$log")" "baseline=100000" "the baseline quoted is the number the filing's own marker carries"
+}
+
+# The item a check files carries the kind, area and type its row declares (#1070): the writer accepts a `type` in
+# the finding and refuses a name the account does not declare, but the payload `sensors_file` built named seven
+# fields and no type — so every condition a check filed arrived untyped however fully its row declared one.
+case_run_aFilingCarriesTheRowsType() {
+  local dir log log2 out out2 status status2 findings findings2 reg2
+  dir=$(scratch); log="$dir/calls.log"; log2="$dir/calls-own-type.log"
+  : > "$log"; : > "$log2"
+  issues_fixture "$dir" '[]'
+
+  findings=$(write_findings "$dir/findings.jsonl" "$(finding violation 9 case alpha)")
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    sensor_engine run.sh --only fixture-emit --apply --input "$findings" \
+    --registry "$(fixture registry.json)" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the run succeeds: $out"
+  assert_eq "1" "$(recorded "$log" 'issue create')" "exactly one filing"
+  # The kind, the area and the type arrive in one write: the type is the tracker's own field beside the labels and
+  # not one more label of them (issue #1070).
+  local filed
+  filed=$(grep -- 'issue create' "$log" | tail -1)
+  assert_contains "$filed" "--label class/bug" "the kind the row declares is the label its issue carries"
+  assert_contains "$filed" "--label category/build-and-harness" "the area the row declares is its label"
+  assert_contains "$filed" "--type Bug" "the kind the row declares is the type its issue carries"
+
+  # A row that declares its own type files that one instead: an `improvement` is a `Task` or a `Feature` as a
+  # person judges it, so the derivation never overrules the row.
+  reg2="$dir/registry-own-type.json"
+  jq '.rows |= map(if .id == "fixture-emit" then . + {type: "Feature"} else . end)' \
+    "$(fixture registry.json)" > "$reg2"
+  findings2=$(write_findings "$dir/findings-own-type.jsonl" "$(finding violation 8 case bravo)")
+  out2=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log2" \
+    sensor_engine run.sh --only fixture-emit --apply --input "$findings2" --registry "$reg2" 2>&1)
+  status2=$?
+  assert_eq "0" "$status2" "a row with its own type still files: $out2"
+  assert_contains "$(cat "$log2")" "--type Feature" "the row's own type is the one its issue carries"
+  assert_not_contains "$(cat "$log2")" "--type Bug" "the class's mapping never overrules the row"
 }
 
 # ----------------------------------------------------------------------------- 3. the three verbs

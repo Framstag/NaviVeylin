@@ -358,13 +358,16 @@ report prints and the one a later measurement is compared against.
 
 An issue filed by a check SHALL carry the kind and area its row declares, the tracker type that kind maps to in
 the registry, and SHALL NOT carry the automation opt-in. A class is this project's vocabulary and a type is the
-tracker account's, so the mapping is the registry's own data and no engine names either side.
+tracker account's, so the mapping is the registry's own data and no engine names either side — and the finding a
+check files is where that type reaches the writer, as the tracker's own field rather than as one more label.
 
 #### Scenario: The row's classification is used
 
 - **WHEN** a check files an issue
-- **THEN** the issue carries the kind and area declared in its row, so no further interpretation is needed
-  before it can be ranked or selected
+- **THEN** the issue carries the kind, area and type declared in its row — the type written as the tracker's own
+  field, in the same write as the labels — so no further interpretation is needed before it can be ranked or
+  selected
+- **Case**: `run#aFilingCarriesTheRowsType`
 
 #### Scenario: The class derives the type, and the row may override it
 
@@ -386,6 +389,7 @@ tracker account's, so the mapping is the registry's own data and no engine names
 - **WHEN** a check files an issue
 - **THEN** the issue is not eligible for automated work until a person applies the opt-in, however clearly
   defect-shaped it is
+- **Case**: `run#dispatchMatrix`
 
 ### Requirement: A row's declared input is published, checked against its producer, and read for the commit under test
 

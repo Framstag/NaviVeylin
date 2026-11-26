@@ -14,6 +14,10 @@ backlog itself — what an item is, what the tracker holds, who may write what, 
   compares against, how many consecutive runs its verdict needs, how many items one run of it may file, the kind
   and area its items carry, the tracker type that class maps to in the registry (a type is the account's own
   name, so no engine may hold it, D12), and whether it owns the item's closure. Adding a check is a row.
+- **Rule: the item a check files carries what its row declares.** The kind, the area and the type the row names — the
+  type through the registry's mapping — reach the tracker as the issue's own fields, in the same write as its labels,
+  because the finding a filing is built from is where they are stated (`sensors_file`, `tools/sensors/run.sh`). A
+  reader asking why a filed item arrived untyped is sent to the payload, not to the registry that already maps one.
 
 The three-value outcome a run of a check writes — a present condition files, reopens or annotates an item; a
 cleared one comments the measurement and closes once the consecutive count is met; a failed one writes nothing and

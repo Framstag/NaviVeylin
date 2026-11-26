@@ -281,9 +281,10 @@ sensors_file() { # <row> <id> <finding> <baseline> [<body>] [<create arg>…]
   file=$(mktemp) || sensors_die "run: cannot create a temporary file"
   jq -n --arg title "$title" --arg class "$(sensors_row_field "$row" class)" \
         --arg category "$(sensors_row_field "$row" category)" \
+        --arg type "$(sensors_row_type "$row")" \
         --arg claim "$(jq -r '.claim // .measurement' <<< "$finding")" \
         --arg fingerprint "$fp" --arg body "$body" --argjson labels "$labels" \
-    '{title: $title, class: $class, category: $category, claim: $claim,
+    '{title: $title, class: $class, category: $category, type: $type, claim: $claim,
       fingerprint: $fingerprint, labels: $labels, body: $body}' > "$file"
   local args=(--sensor "$id" --finding "$file")
   [ "${#extra[@]}" -eq 0 ] || args+=("${extra[@]}")

@@ -488,6 +488,8 @@ LOOP_SHELL_CASES=(
   'driver#aCoreFileOwesEveryCase'
   'driver#aHunkInACaseBodySelectsThatCaseOnly'
   'driver#aHunkOutsideEveryCaseBodyOwesEveryCase'
+  'driver#aSecondCasesFileIsReadByAllThreeReaders'
+  'driver#aBodyInTheSecondCasesFileWithNoRowIsRefused'
   'driver#everyCaseDeclaresTheFilesItCanReach'
   'driver#aCaseWithNoSelectionRowIsRefused'
   'driver#everyEngineScriptIsInTheTable'
@@ -1346,6 +1348,8 @@ loop_run_shell_case() {
     'driver#aCoreFileOwesEveryCase') fn=case_driver_aCoreFileOwesEveryCase ;;
     'driver#aHunkInACaseBodySelectsThatCaseOnly') fn=case_driver_aHunkInACaseBodySelectsThatCaseOnly ;;
     'driver#aHunkOutsideEveryCaseBodyOwesEveryCase') fn=case_driver_aHunkOutsideEveryCaseBodyOwesEveryCase ;;
+    'driver#aSecondCasesFileIsReadByAllThreeReaders') fn=case_driver_aSecondCasesFileIsReadByAllThreeReaders ;;
+    'driver#aBodyInTheSecondCasesFileWithNoRowIsRefused') fn=case_driver_aBodyInTheSecondCasesFileWithNoRowIsRefused ;;
     'driver#everyCaseDeclaresTheFilesItCanReach') fn=case_driver_everyCaseDeclaresTheFilesItCanReach ;;
     'driver#aCaseWithNoSelectionRowIsRefused') fn=case_driver_aCaseWithNoSelectionRowIsRefused ;;
     'driver#everyEngineScriptIsInTheTable') fn=case_driver_everyEngineScriptIsInTheTable ;;
@@ -19664,6 +19668,21 @@ nested_suite() { # nested_suite <dir> → "<driver>\n<conf>"
   printf '%s\n%s\n' "$nested/tools/loop/tests/loop-selftest.sh" "$d/loop.conf"
 }
 
+# A split suite: `nested_suite` writes the first cases file, and this writes a second beside it and names both in the
+# nested profile's `LOOP_CASE_FILES` — which is what a partition of the suite is (issue #1101). The profile is this
+# project's own, copied by `nested_suite`, so the line is replaced where it stands and appended where the project
+# records none: two assignments of one key would make the answer depend on which came last.
+nested_suite_second_file() { # <dir> ← the second cases file on stdin
+  local d="$1" set='tools/loop/tests/loop-cases.sh tools/loop/tests/loop-cases-more.sh'
+  cat > "$d/nested/tools/loop/tests/loop-cases-more.sh" || fail "could not write the second cases file"
+  if grep -q '^LOOP_CASE_FILES=' "$d/loop.conf"; then
+    sed -i "s|^LOOP_CASE_FILES=.*|LOOP_CASE_FILES=\"$set\"|" "$d/loop.conf" \
+      || fail "could not name the set in the nested profile"
+  else
+    printf 'LOOP_CASE_FILES="%s"\n' "$set" >> "$d/loop.conf" || fail "could not name the set in the nested profile"
+  fi
+}
+
 # Four stub cases, one declaration each: a script, a second script, a directory and a path no case owns. `*` is not
 # among them, because a case declared `*` is owed for any delta and would make every selection below read as `4 of 4`.
 STUB_SELECTION_CASES='LOOP_SHELL_CASES=("stub#ownsGate" "stub#ownsRun" "stub#ownsFixtureDir" "stub#ownsNothing")
@@ -19985,8 +20004,132 @@ CASES
 
   out=$(LOOP_CONF="$conf" bash "$driver" --case 'stub#kept' 2>&1); status=$?
   assert_eq "1" "$status" "a cases file whose body has no row is refused, never read as a whole suite: $out"
-  assert_contains "$out" 'case stub#lost has a body in loop-cases.sh and no row in LOOP_SHELL_CASES' \
-    "and the refusal names the case no selection reaches: $out"
+  assert_contains "$out" 'case stub#lost has a body in tools/loop/tests/loop-cases.sh and no row in LOOP_SHELL_CASES' \
+    "and the refusal names the case no selection reaches, and the file it was read from: $out"
+  assert_not_contains "$out" 'PASS ' "and no case runs, so the row that survived cannot read as the suite: $out"
+  return 0
+}
+
+# Two cases files, each with a body, a row and an arm of its own, and a delta with one line added inside each file's
+# case body: the three readers that answer "which cases exist, what does each reach, and which case does this hunk sit
+# in" have to answer over the set, not over the one path each was handed before (issue #1101). The two files are
+# sourced in the order `LOOP_CASE_FILES` names them, so each one's own `loop_shell_cases` is read after its own source
+# and the declared set is the concatenation — the `--case-files` leg holds that, and the `--from-git` leg holds that a
+# hunk in the second file is placed in a body of the second file.
+case_driver_aSecondCasesFileIsReadByAllThreeReaders() {
+  # files: tools/issues/ tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/loop/
+  local d driver conf nest base out status ran
+  d=$(scratch)
+  out=$(nested_suite "$d" <<'CASES'
+LOOP_SHELL_CASES=('stub#ownsGate')
+loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
+loop_run_shell_case() {
+  case "$1" in
+    'stub#ownsGate') fn=case_stub_ownsGate ;;
+  esac
+  "$fn"
+}
+stub_ran() { printf '%s\n' "$1" >> "$STUB_RUN_LOG"; }
+case_stub_ownsGate() {
+  # files: tools/loop/gate.sh
+  stub_ran "stub#ownsGate"
+}
+CASES
+  ) || fail "could not build the nested suite"
+  nested_suite_second_file "$d" <<'CASES' || fail "could not write the second cases file"
+LOOP_SHELL_CASES=('stub#ownsSecond')
+loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
+# The arm table of the file sourced last answers for both files' cases: a name bodied in the first file and armed in
+# the second is not an orphan, which is what the union the guard compares is for.
+loop_run_shell_case() {
+  case "$1" in
+    'stub#ownsGate') fn=case_stub_ownsGate ;;
+    'stub#ownsSecond') fn=case_stub_ownsSecond ;;
+  esac
+  "$fn"
+}
+case_stub_ownsSecond() {
+  # files: tools/loop/child.sh
+  stub_ran "stub#ownsSecond"
+}
+CASES
+  driver=$(printf '%s\n' "$out" | sed -n 1p)
+  conf=$(printf '%s\n' "$out" | sed -n 2p)
+  nest="$d/nested"
+
+  # The declaration reader answers over the set: the second file's body is printed with the files it declares, and the
+  # first file's own row keeps its own declaration.
+  out=$(LOOP_CONF="$conf" bash "$driver" --case-files 2>&1); status=$?
+  assert_eq "0" "$status" "--case-files reads the whole set: $out"
+  assert_contains "$out" "$(printf 'stub#ownsGate\ttools/loop/gate.sh')" \
+    "the first file's case keeps its own declaration: $out"
+  assert_contains "$out" "$(printf 'stub#ownsSecond\ttools/loop/child.sh')" \
+    "and the second file's case is declared at all, with what it declares: $out"
+
+  export STUB_RUN_LOG="$d/ran.log"; : > "$STUB_RUN_LOG"
+  git -C "$nest" add -A >/dev/null 2>&1 || fail "could not stage the nested tree"
+  git -C "$nest" -c user.email=case@example.invalid -c user.name=case commit -qm base >/dev/null 2>&1 \
+    || fail "could not commit the nested tree's base"
+  base=$(git -C "$nest" rev-parse HEAD)
+
+  # One line added inside a case body of each file, and nothing else in the tree: the delta is those two cases'.
+  sed '/^case_stub_ownsGate() {$/a\  # a line the delta adds inside one case body' \
+    "$nest/tools/loop/tests/loop-cases.sh" > "$d/first.sh" || fail "could not edit the nested cases file"
+  mv "$d/first.sh" "$nest/tools/loop/tests/loop-cases.sh"
+  sed '/^case_stub_ownsSecond() {$/a\  # a line the delta adds inside the second case body' \
+    "$nest/tools/loop/tests/loop-cases-more.sh" > "$d/second.sh" || fail "could not edit the second cases file"
+  mv "$d/second.sh" "$nest/tools/loop/tests/loop-cases-more.sh"
+
+  out=$( cd "$nest" && LOOP_CONF="$conf" bash "$driver" --from-git "$base" 2>&1 ); status=$?
+  ran=$(sort "$STUB_RUN_LOG")
+  assert_eq "0" "$status" "a delta in two cases files runs: $out"
+  assert_eq "stub#ownsGate
+stub#ownsSecond" "$ran" "each file's hunk ran the case it sits in: $(cat "$STUB_RUN_LOG")"
+  assert_contains "$out" "the case files' hunks name 2 case(s): stub#ownsGate stub#ownsSecond" \
+    "and the selection states two narrowed cases, one from each file: $out"
+  return 0
+}
+
+# The refusal that holds the registration rule to the set: the second file defines a body its own `LOOP_SHELL_CASES`
+# does not name, and the union comparison names it once with the file it was read from (issue #1101). A file that
+# defines no body at all is still exempt — neither file here is, so the exemption is not what answers.
+case_driver_aBodyInTheSecondCasesFileWithNoRowIsRefused() {
+  # files: tools/issues/ tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh tools/loop/
+  local d driver conf out status
+  d=$(scratch)
+  out=$(nested_suite "$d" <<'CASES'
+LOOP_SHELL_CASES=('stub#kept')
+loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
+loop_run_shell_case() {
+  case "$1" in
+    'stub#kept') fn=case_stub_kept ;;
+  esac
+  "$fn"
+}
+case_stub_kept() {
+  # files: tools/loop/gate.sh
+  :
+}
+CASES
+  ) || fail "could not build the nested suite"
+  nested_suite_second_file "$d" <<'CASES' || fail "could not write the second cases file"
+LOOP_SHELL_CASES=('stub#kept')
+loop_shell_cases() { printf '%s\n' "${LOOP_SHELL_CASES[@]}"; }
+case_stub_orphanSecond() {
+  # files: tools/loop/child.sh
+  :
+}
+CASES
+  driver=$(printf '%s\n' "$out" | sed -n 1p)
+  conf=$(printf '%s\n' "$out" | sed -n 2p)
+
+  out=$(LOOP_CONF="$conf" bash "$driver" --case 'stub#kept' 2>&1); status=$?
+  assert_eq "1" "$status" "a body in the second file with no row is refused, never read as a whole suite: $out"
+  assert_eq "1" "$(printf '%s\n' "$out" | grep -c 'stub#orphanSecond has a body' || true)" \
+    "and the orphan body is named once, not once per file: $out"
+  assert_contains "$out" \
+    'case stub#orphanSecond has a body in tools/loop/tests/loop-cases-more.sh and no row in LOOP_SHELL_CASES' \
+    "and the refusal names the case and the file it was read from: $out"
   assert_not_contains "$out" 'PASS ' "and no case runs, so the row that survived cannot read as the suite: $out"
   return 0
 }

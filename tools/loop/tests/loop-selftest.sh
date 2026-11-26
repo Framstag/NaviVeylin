@@ -496,9 +496,21 @@ export GH_STUB_DIR="$LOOP_ISSUE_FIXTURES"
 chmod +x "$LOOP_FIXTURES/pi" "$LOOP_ISSUE_FIXTURES/gh" 2>/dev/null || true
 export PATH="$LOOP_FIXTURES:$LOOP_ISSUE_FIXTURES:$PATH"
 
-# shellcheck source=tools/loop/tests/loop-cases.sh
-source "$root/tools/loop/tests/loop-cases.sh"
-shell_cases=$(loop_shell_cases) || exit 1
+# The files the suite's case bodies live in, named once (issue #1101): the profile's `LOOP_CASE_FILES`,
+# space-separated and repository-relative, defaulting to the one file the suite has today. Each file is sourced in the
+# order the value names it and its own `loop_shell_cases` is read immediately after its own source, so the declared set
+# is what each file answered and not what the last one overwrote. Every reader below is handed this set, never one
+# hard-wired path, because a second cases file is invisible to all three otherwise.
+case_files_set=${LOOP_CASE_FILES:-tools/loop/tests/loop-cases.sh}
+case_file_paths=""
+shell_cases=""
+for _cf in $case_files_set; do
+  # shellcheck source=tools/loop/tests/loop-cases.sh
+  source "$root/$_cf"
+  _cf_answered=$(loop_shell_cases) || exit 1
+  shell_cases="${shell_cases:+$shell_cases }${_cf_answered:-}"
+  case_file_paths="${case_file_paths:+$case_file_paths }$root/$_cf"
+done
 
 # ── the three sets that name a case, compared (issue #929) ──────────────────────────────────────────────────
 # `LOOP_SHELL_CASES` *is* the declared set, so the selection list is the suite: a delta that replaces a row instead of
@@ -516,8 +528,17 @@ shell_cases=$(loop_shell_cases) || exit 1
 # four `stub#owns*` bodies are inside a nested fixture's own quoted `LOOP_SHELL_CASES` string, so they are exempt by
 # name. A file with bodies but no arm table is held only to the bodies and the rows.
 # `driver#aCaseWithNoSelectionRowIsRefused` is the case that holds the refusal to a cases file whose row was replaced.
-registration=$(awk -v declared="$shell_cases" -v q="'" '
+# The awk frames itself on `FILENAME` because it is handed the set (issue #1101): a transition between files resets
+# the heredoc state and that file's own counters, so each file's `nbfile` still carries the "defines no body at all, so
+# it dispatches by convention" exemption, while the body, arm and selected sets stay global and the END block compares
+# them once over the union. A name bodied in one file and armed in another is then not a false orphan.
+registration=$(awk -v declared="$shell_cases" -v q="'" -v prefix="$root/" '
   BEGIN { n = split(declared, d, " "); for (i = 1; i <= n; i++) selected[d[i]] = 1 }
+  FILENAME != last {
+    if (last != "" && nbfile == 0) na = na_before
+    last = FILENAME; nbfile = 0; na_before = na; hd = ""
+    relf = (substr(FILENAME, 1, length(prefix)) == prefix) ? substr(FILENAME, length(prefix) + 1) : FILENAME
+  }
   {
     if (hd != "") { if ($0 == hd) hd = ""; next }
     if ((p = index($0, "<<")) > 0) {
@@ -528,7 +549,7 @@ registration=$(awk -v declared="$shell_cases" -v q="'" '
     if ($0 ~ /^case_[a-z]+_[A-Za-z0-9_]+\(\) \{/) {
       fn = $0; sub(/\(\) \{.*/, "", fn); sub(/^case_/, "", fn)
       i = index(fn, "_"); nm = substr(fn, 1, i - 1) "#" substr(fn, i + 1)
-      body[nm] = 1; bname[++nb] = nm; next
+      body[nm] = 1; bfile[nm] = relf; bname[++nb] = nm; nbfile++; next
     }
     if (substr($1, length($1) - 1) == q ")" && $2 ~ /^fn=case_/) {
       key = substr($1, 2, length($1) - 3); fn = $2; sub(/^fn=/, "", fn)
@@ -536,11 +557,12 @@ registration=$(awk -v declared="$shell_cases" -v q="'" '
     }
   }
   END {
+    if (nbfile == 0) na = na_before
     if (nb == 0) exit 0
     for (i = 1; i <= nb; i++) {
       nm = bname[i]
       if (nm ~ /^stub#owns/ || (nm in selected)) continue
-      printf "loop-selftest: case %s has a body in loop-cases.sh and no row in LOOP_SHELL_CASES — no selection can reach it (issue #929)\n", nm
+      printf "loop-selftest: case %s has a body in %s and no row in LOOP_SHELL_CASES — no selection can reach it (issue #929)\n", nm, bfile[nm]
     }
     if (na == 0) {
       for (nm in selected)
@@ -562,7 +584,7 @@ registration=$(awk -v declared="$shell_cases" -v q="'" '
       if (!(nm in arm))
         printf "loop-selftest: %s is a row of LOOP_SHELL_CASES with no dispatch arm — a filter can name it and nothing reaches it (issue #929)\n", nm
   }
-' "$root/tools/loop/tests/loop-cases.sh")
+' $case_file_paths)
 if [ -n "$registration" ]; then
   printf '%s\n' "$registration" >&2
   printf 'loop-selftest: the cases file names a case in one of its three sets and not in another, and a row a delta replaces instead of inserting shrinks the suite in silence (issue #929)\n' >&2
@@ -585,15 +607,23 @@ fi
 # from the case it belongs to. A case with no declaration is owed for nothing a file filter names and is counted as
 # undeclared by `--case-files`; the suite's own case `driver#everyCaseDeclaresTheFilesItCanReach` is what refuses it.
 declare -A case_files=()
-while IFS=$'\t' read -r _decl_fn _decl_set; do
+# The file a body was read from, kept beside its declaration rather than in the declaration's key: `--case-files`
+# prints the key and the declaration only, so the one-file set's output stays byte-identical (issue #1101).
+declare -A case_file_of=()
+while IFS=$'\t' read -r _decl_fn _decl_set _decl_file; do
   [ -n "$_decl_fn" ] || continue
   _decl_name=${_decl_fn#case_}
   _decl_name="${_decl_name%%_*}#${_decl_name#*_}"
   case_files[$_decl_name]=$_decl_set
-done < <(awk '
+  case_file_of[$_decl_name]=$_decl_file
+done < <(awk -v prefix="$root/" '
+  FILENAME != last {
+    last = FILENAME
+    relf = (substr(FILENAME, 1, length(prefix)) == prefix) ? substr(FILENAME, length(prefix) + 1) : FILENAME
+  }
   /^case_[a-z]*_[A-Za-z0-9_]*\(\) \{/ { fn = $0; sub(/\(\) \{.*/, "", fn); want = 1; next }
-  want { if ($0 ~ /^  # files: /) { sub(/^  # files: /, ""); printf "%s\t%s\n", fn, $0 } want = 0 }
-' "$root/tools/loop/tests/loop-cases.sh")
+  want { if ($0 ~ /^  # files: /) { sub(/^  # files: /, ""); printf "%s\t%s\t%s\n", fn, $0, relf } want = 0 }
+' $case_file_paths)
 
 # The files a change must touch for every case to be owed: a case reaches behaviour through the suite's own
 # driver, its case file and the library and profile every engine script sources, so a delta to one of them is
@@ -620,7 +650,7 @@ if [ -n "$from_git" ]; then
   done < <(printf '%s\n' "$git_paths" "$status_paths")
 fi
 
-# ── the case file's own hunks name the cases they sit in (issue #917) ───────────────────────────────────────
+# ── the case files' own hunks name the cases they sit in (issue #917) ───────────────────────────────────────
 # The cases file is a core file, so a delta that touched it owed the whole set: a change that added two cases and
 # rewrote nothing paid `--from-git` over every case the suite holds — 853 s (#890) and 883 s (#861) of a gate whose
 # other legs are seconds, and the run's own suite asked 445 questions where the delta declared ten. The declaration
@@ -630,9 +660,11 @@ fi
 # declares: a gate that trusts the change's declaration is a gate the change can narrow (issue #917, rejected
 # option B). A delta that names no declared case this way — a case body deleted, a hunk no span holds — keeps the
 # leg whole, which is the answer before this narrowing and the cheap side to be wrong on.
-case_file=tools/loop/tests/loop-cases.sh
 from_git_narrowed=0
 narrow_cases=""
+# The cases files the narrowing answered, space-separated: a changed path that is one of these owes the cases its own
+# hunks named and nothing more (issue #1101).
+narrowed_case_files=""
 case_spans() { # < a cases file → "<first line>\t<last line>\t<group#name>" per case-body span
   awk '
     /^case_[a-z]+_[A-Za-z0-9_]+\(\) \{/ {
@@ -645,10 +677,21 @@ case_spans() { # < a cases file → "<first line>\t<last line>\t<group#name>" pe
     END { if (in_case) printf "%s\t%s\t%s\n", start, NR, name }
   '
 }
-if [ -n "$from_git" ] && case " $only_files " in *" $case_file "*) true ;; *) false ;; esac; then
+# Every cases file of the set the delta changed answers for its own hunks, against its own path (issue #1101): with
+# the one file this is the file that used to be bound here, and with several each changed file's own spans place its own
+# hunks, so a hunk no longer sits in a file the map does not read.
+changed_case_files=""
+if [ -n "$from_git" ]; then
+  for _cf in $case_files_set; do
+    case " $only_files " in *" $_cf "*) changed_case_files="$changed_case_files$_cf " ;; esac
+  done
+fi
+narrow_failed=0
+if [ -n "$changed_case_files" ]; then
+for _cf in $changed_case_files; do
   # A hunk carries both sides: its new lines live in the working tree and its deleted ones only in the base, so a
   # hunk with no new line is placed in the base's spans and its names are then looked up in the declared set.
-  hunks=$(git -C "$root" diff -U0 "$from_git" -- "$case_file" 2>/dev/null | awk '
+  hunks=$(git -C "$root" diff -U0 "$from_git" -- "$_cf" 2>/dev/null | awk '
     /^@@ / {
       o = substr($2, 2); n = substr($3, 2)
       oc = (index(o, ",") ? substr(o, index(o, ",") + 1) : 1); sub(/,.*/, "", o)
@@ -656,12 +699,12 @@ if [ -n "$from_git" ] && case " $only_files " in *" $case_file "*) true ;; *) fa
       printf "%s\t%s\t%s\t%s\n", o, oc, n, nc
     }')
   if [ -n "$hunks" ]; then
-    narrow_cases=$(
+    placed=$(
       {
         printf 'W\t0\t0\n'
-        case_spans < "$root/$case_file"
+        case_spans < "$root/$_cf"
         printf 'B\t0\t0\n'
-        git -C "$root" show "$from_git:$case_file" 2>/dev/null | case_spans
+        git -C "$root" show "$from_git:$_cf" 2>/dev/null | case_spans
         printf 'H\t0\t0\n'
         printf '%s\n' "$hunks"
       } | awk -F'\t' '
@@ -679,17 +722,32 @@ if [ -n "$from_git" ] && case " $only_files " in *" $case_file "*) true ;; *) fa
           if (hit == "" || !same) exit 1
           if (!seen[hit]++) printf "%s\n", hit
         }'
-    ) || narrow_cases=""
+    ) || placed=""
     declared=" $(printf '%s ' $shell_cases)"
     kept=""
-    for _narrowed in $narrow_cases; do
+    for _narrowed in $placed; do
       case "$declared" in *" $_narrowed "*) kept="$kept$_narrowed " ;; esac
     done
     if [ -n "$kept" ]; then
-      from_git_narrowed=1
-      narrow_cases="${kept% }"
+      for _narrowed in $kept; do
+        case " $narrow_cases " in *" $_narrowed "*) continue ;; esac
+        narrow_cases="$narrow_cases$_narrowed "
+      done
+      narrowed_case_files="$narrowed_case_files$_cf "
+    else
+      narrow_failed=1
     fi
+  else
+    narrow_failed=1
   fi
+done
+if [ "$narrow_failed" -eq 0 ] && [ -n "$narrow_cases" ]; then
+  from_git_narrowed=1
+  narrow_cases="${narrow_cases% }"
+else
+  narrow_cases=""
+  narrowed_case_files=""
+fi
 fi
 
 if [ "$list_declared" -eq 1 ]; then
@@ -871,20 +929,24 @@ count_matching() { # <pattern> → how many declared cases it names
 
 # A changed path owes a case when the case declares it. `*` owes every case, a token ending in `/` owns the paths
 # below it, and a core file owes the whole set whatever the cases declare — the three rules are read in that order
-# because the widest of them decides. The cases file is the one token whose own hunks are answered instead of the
-# file: when `--from-git` placed every one of them in a case body, that file owes the cases they sit in and nothing
-# more (issue #917).
+# because the widest of them decides. A cases file is the one token whose own hunks are answered instead of the file:
+# when `--from-git` placed every one of its hunks in a case body, that file owes the cases they sit in and nothing more
+# (issue #917), and with a set each changed cases file is answered by its own hunks (issue #1101).
 files_select() { # <case> → the file set names this case
   local tok p
   [ "$only_files" = " " ] && return 0
   for p in $only_files; do
-    [ "$from_git_narrowed" -eq 1 ] && [ "$p" = "$case_file" ] && continue
+    if [ "$from_git_narrowed" -eq 1 ]; then
+      case " $narrowed_case_files " in *" $p "*) continue ;; esac
+    fi
     case " $core_files " in *" $p "*) return 0 ;; esac
   done
   for tok in ${case_files[$1]:-}; do
     [ "$tok" = '*' ] && return 0
     for p in $only_files; do
-      [ "$from_git_narrowed" -eq 1 ] && [ "$p" = "$case_file" ] && continue
+      if [ "$from_git_narrowed" -eq 1 ]; then
+        case " $narrowed_case_files " in *" $p "*) continue ;; esac
+      fi
       case "$tok" in
         */) case "$p" in "$tok"*) return 0 ;; esac ;;
         *) [ "$p" = "$tok" ] && return 0 ;;
@@ -955,11 +1017,17 @@ if [ "$only_files" != " " ]; then
   printf 'loop-selftest: selected %s of %s cases (files:%s)\n' "$(printf '%s' "$selected" | grep -c . || true)" \
     "$(count_matching '*')" "${only_files% }" >&2
 fi
-# A narrowed leg says so beside the file set: `tools/loop/tests/loop-cases.sh` is in that line and is not what the
-# leg asked, so the cases its hunks named are named here (issue #917).
+# A narrowed leg says so beside the file set: the changed cases files are in that line and are not what the leg asked,
+# so the cases their hunks named are named here (issue #917), and with a set the line names the set's files (issue
+# #1101).
 if [ "$from_git_narrowed" -eq 1 ]; then
-  printf 'loop-selftest: the case file'\''s hunks name %s case(s): %s\n' "$(printf '%s\n' $narrow_cases | wc -l)" \
-    "$narrow_cases" >&2
+  if [ "$(printf '%s\n' $narrowed_case_files | grep -c . || true)" -eq 1 ]; then
+    printf 'loop-selftest: the case file'\''s hunks name %s case(s): %s\n' \
+      "$(printf '%s\n' $narrow_cases | wc -l)" "$narrow_cases" >&2
+  else
+    printf 'loop-selftest: the case files'\'' hunks name %s case(s): %s\n' \
+      "$(printf '%s\n' $narrow_cases | wc -l)" "$narrow_cases" >&2
+  fi
 fi
 
 if [ "$list_only" -eq 1 ]; then

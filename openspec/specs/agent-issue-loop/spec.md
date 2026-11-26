@@ -6960,3 +6960,41 @@ A core case SHALL exist in the core's own case list, and the suite SHALL ask tha
 - **WHEN** a core case carries no declared files
 - **THEN** the case-list check fails and names the case
 - **Case**: `core#aCoreCaseDeclaresItsFiles`
+
+### Requirement: The suite's case readers take the case-file set
+
+`tools/loop/tests/loop-selftest.sh` SHALL read the suite's case bodies from a **set** of files — named once by the
+profile's `LOOP_CASE_FILES`, space-separated and repository-relative, defaulting to
+`tools/loop/tests/loop-cases.sh` when the profile records none — and each of the three programs that reads a cases
+file SHALL be handed the set rather than one path: the registration guard SHALL compare the three sets that name a
+case (bodies, dispatch arms, selection rows) once over the union of the set, the `# files:` declaration reader SHALL
+emit the file a body was read from beside its name and its declaration, and the hunk→case map SHALL answer per
+**changed** cases file — the spans of the file a hunk sits in, not of one hard-wired path. Each file of the set SHALL
+be sourced in the order the value names it, and its own `loop_shell_cases` SHALL be read immediately after its own
+source, so the declared set is what each file answered and not what the last file overwrote. A file that defines no
+case body at all SHALL still be exempt from the registration comparison, exactly as the one file is today. For a set
+that holds the one file the suite has today, `--list` and `--case-files` SHALL print what the base commit prints.
+
+#### Scenario: A case body in a second cases file is declared
+
+- **WHEN** the suite's set holds two cases files and the second one's body declares `tools/loop/child.sh`
+- **THEN** `--case-files` prints that body's name with `tools/loop/child.sh`, and the first file's own rows are still
+  printed with their own declarations, so a file filter can select on a case the set carries second
+- **Case**: `tools/loop/tests/loop-selftest.sh --case driver#aSecondCasesFileIsReadByAllThreeReaders`
+  (`--case-files` leg)
+
+#### Scenario: A delta's hunks are placed per changed cases file
+
+- **WHEN** a `--from-git` delta adds one line inside a case body of each of two cases files, and both files are in
+  the set
+- **THEN** the selection narrows to exactly the two case ids the two hunks sit in — the spans of each changed file,
+  not one path's — and the run's own line names two narrowed cases
+- **Case**: `tools/loop/tests/loop-selftest.sh --case driver#aSecondCasesFileIsReadByAllThreeReaders`
+  (`--from-git` leg)
+
+#### Scenario: A body in the second file with no row of its own is refused
+
+- **WHEN** the second cases file defines a case body that its own `LOOP_SHELL_CASES` does not name
+- **THEN** the suite refuses with exit 1 and names the case and the file it was read from, so a body added to any file
+  of the set without a row is refused rather than silently unrunnable
+- **Case**: `tools/loop/tests/loop-selftest.sh --case driver#aBodyInTheSecondCasesFileWithNoRowIsRefused`

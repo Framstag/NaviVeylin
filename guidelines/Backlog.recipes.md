@@ -1179,6 +1179,12 @@ document does not carry with the sections it does carry, reads a paragraph that 
 the same change with no route line as a warning under `warn` and a failure under `fail` (issue #1081, records `974.1`
 and `974.2`).
 
+The case bodies themselves may live in more than one file: the profile's `LOOP_CASE_FILES` names the set —
+space-separated and repository-relative, `tools/loop/tests/loop-cases.sh` being the set with one file in it — and
+every reader of them is handed that set rather than one hard-wired path: the registration guard compares the rows,
+bodies and dispatch arms once over the union of the set, the declaration reader emits the file a body was read from
+beside it, and the hunk map answers per changed cases file (issue #1101). A partition of the suite is then a change
+to that value and not to a reader.
 A suite the gate owes can narrow itself to the delta being measured: a profile's command may carry `{base}`, which
 the gate replaces with the base it resolved, and the loop's self-test is run that way. Its cases declare the files
 they can be affected by in the first line of their body (`# files: <token> …`, a token ending in `/` for a
@@ -1197,7 +1203,9 @@ owes the whole set, and so does the archive: a case reaches behaviour through th
 hand-run of all of them covers that. The case file is the one path whose own hunks are read instead of its name
 (issue #917): a hunk inside one `case_<group>_<name>() {` … `^}` span owes that case, and a hunk no case body holds
 — a shared helper, the top level — still owes the whole set, so a delta that adds two cases and rewrites nothing
-stopped paying the whole suite to prove them (853 s, #890). Measured
+stopped paying the whole suite to prove them (853 s, #890). With a set the map answers **per changed cases file**:
+each changed file's hunks are placed in the spans of that path, and the narrowing holds only when every changed cases
+file placed every one of its own hunks in a case body (issue #1101). Measured
 2026-10-23 (issue #276): 190 cases and 723 s were owed for every
 `tools/loop/**` gate run, a delta to `tools/loop/worktree.sh` alone is declared by 31 of them, and a delta to
 `tools/loop/run.sh` by 110 — the end-to-end `run#*` cases are the half that cannot narrow. Measured the same day:

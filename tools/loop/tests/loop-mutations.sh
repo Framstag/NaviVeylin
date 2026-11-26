@@ -1383,6 +1383,13 @@ MUTATIONS=(
   '987.1@-@tools/loop/run.sh@run#aRoundCutTwiceKeepsBothReadingsFindings@the note that names the findings file to the caller, so the item state and the report resume line carry no account of the two readings the run paid for (issue #987)@s|if \[ -n "\$review_findings_file" \]; then|if false; then|'
   '987.2@-@tools/loop/evidence.sh@run#aRoundCutTwiceKeepsBothReadingsFindings@the write of the two readings, so the run spends a second session on the round and keeps neither reading anywhere (issue #987)@s#} > "$dest" 2>/dev/null || return 0#} > /dev/null || return 0#'
   '987.3@-@tools/loop/evidence.sh@run#aRoundCutTwiceKeepsBothReadingsFindings@the predicate that reads a restart off the report own name, so the second bound is recorded as the item cut and the two readings behind it are dropped (issue #987)@s#^  case "\$report" in$#  return 0; case "$report" in#'
+  # 1045.x — the reading a restart **replaced** is the caller's to hand in, because the restart's own name cannot carry
+  # which attempt was restarted: `run.sh` names it `<round>-restart.md` whichever attempt it cut, and a round whose
+  # answer was cut on its way to the file is asked again before it is ever restarted (issue #1045). Two halves, one
+  # per shape of the bug: a predicate that guesses the replaced reading off the final report's name, and a retry that
+  # does not record the reading it replaced.
+  '1045.1@-@tools/loop/evidence.sh@run#aRestartQuotesTheRetriedReadingItReplaced@the replaced reading the caller hands in, so the predicate derives it from the restart own name and quotes the attempt before the retry — a reading the restart was never handed — in place of the findings the run paid a session for (issue #1045)@s|^  \[ -n "\$first" \] \|\| return 0$|  first="${report%-restart-retry.md}"; first="${first%-restart.md}.md"|'
+  '1045.2@-@tools/loop/run.sh@run#aRetriedRestartQuotesTheReadingItRetried@the reading a retry of a restart replaced, so the retry records the attempt before the restart and the file quotes a reading the retry was never handed while the restart own report is dropped (issue #1045)@0,/^          review_replaced_report="\$reviewer_report"$/s|^          review_replaced_report="\$reviewer_report"$|          :|'
   # 1085.x — a refusal buys the round after it only when it **named** a finding (issue #1085): the count is the
   # reviewer's claim about its own grading and the `BLOCKING:` line is the finding a worker pass can act on. Every
   # `VERDICT: FAIL` report in the archive carries one, at line start or wrapped in the emphasis #1042's round

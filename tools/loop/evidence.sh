@@ -803,15 +803,19 @@ review_findings_evidence() { # <destination> <the first reading's report> <the r
 
 # The predicate is the report's own name, not new state: an attempt's name is `<round>.md`, `<round>-retry.md`,
 # `<round>-restart.md` or `<round>-restart-retry.md` (`run.sh`'s review loop), so a report that carries a restart
-# suffix is one whose round the run had already cut once — and the reading it replaced is the same name with that
-# suffix taken off.
-review_findings_for_double_cut() { # <item dir> <the reading's report> → the evidence path, or nothing when this reading is not a restart
-  local dir="$1" report="$2" first
+# suffix is one whose round the run had already cut once. That name says **whether** this reading is a restart and
+# nothing about **which** reading the restart replaced: `run.sh` names a restart `<round>-restart.md` whichever
+# attempt it restarted, and a round whose answer was cut on the way to the file is asked again as `<round>-retry.md`
+# (issue #1045). So the caller hands the replaced reading in — it holds it at the moment it names the restart — and
+# this predicate guesses no reading of its own.
+review_findings_for_double_cut() { # <item dir> <the reading's report> <the reading it replaced> → the evidence path, or nothing when this reading is not a restart
+  local dir="$1" report="$2" first="$3"
   case "$report" in
-    *-restart-retry.md) first="${report%-restart-retry.md}.md" ;;
-    *-restart.md) first="${report%-restart.md}.md" ;;
+    *-restart-retry.md|*-restart.md) ;;
     *) return 0 ;;
   esac
+  [ -n "$first" ] || return 0
+  [ "$first" != "$report" ] || return 0
   review_findings_evidence "$dir/review-findings.md" "$first" "$report"
 }
 

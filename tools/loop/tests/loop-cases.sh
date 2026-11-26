@@ -324,6 +324,8 @@ LOOP_SHELL_CASES=(
   'run#aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides'
   'run#aPreGateReviewEndedAtItsBoundNamesIt'
   'run#aRoundCutTwiceKeepsBothReadingsFindings'
+  'run#aRestartQuotesTheRetriedReadingItReplaced'
+  'run#aRetriedRestartQuotesTheReadingItRetried'
   'run#dirtyKeptWorktreeIsARecordedRefusal'
   'run#resetWorktreeDiscardsWhatItNames'
   'run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard'
@@ -1179,6 +1181,8 @@ loop_run_shell_case() {
     'run#aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides') fn=case_run_aPreGateReviewCutTwiceIsUnansweredAndTheGateDecides ;;
     'run#aPreGateReviewEndedAtItsBoundNamesIt') fn=case_run_aPreGateReviewEndedAtItsBoundNamesIt ;;
     'run#aRoundCutTwiceKeepsBothReadingsFindings') fn=case_run_aRoundCutTwiceKeepsBothReadingsFindings ;;
+    'run#aRestartQuotesTheRetriedReadingItReplaced') fn=case_run_aRestartQuotesTheRetriedReadingItReplaced ;;
+    'run#aRetriedRestartQuotesTheReadingItRetried') fn=case_run_aRetriedRestartQuotesTheReadingItRetried ;;
     'run#dirtyKeptWorktreeIsARecordedRefusal') fn=case_run_dirtyKeptWorktreeIsARecordedRefusal ;;
     'run#resetWorktreeDiscardsWhatItNames') fn=case_run_resetWorktreeDiscardsWhatItNames ;;
     'run#resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard') fn=case_run_resetWorktreeSyncsTheSubmoduleTheResetCannotDiscard ;;
@@ -11522,6 +11526,85 @@ EOF
   assert_contains "$note" "review-findings.md" "the item's own note names the file, so the caller learns it exists"
   assert_contains "$out" "review-findings.md" \
     "and the report's resume line carries that note, the one line a caller gets about a cut item"
+}
+
+# The reading a restart replaced is not the round's first attempt: a round whose answer was cut on its way to the
+# file is asked again (`<round>-retry.md`), and it is that retry the restart stands in place of. A predicate that
+# reads the replaced reading off the restart's own name reaches back past the retry to the empty attempt before it,
+# so the file quotes a reading that wrote nothing and the findings the run paid a session for are in no record the
+# item keeps (issue #1045).
+case_run_aRestartQuotesTheRetriedReadingItReplaced() {
+  # files: tools/loop/tests/fixtures/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out state findings bound_line extra
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # Three asks for one answer: the first is cut on its way to the file, the retry is ended at the reviewer's turn
+  # bound, and the restart is ended at the same bound again — so the item is cut and the reading the restart replaced
+  # is the retry's, the only one of the three that wrote a finding.
+  bound_line='LOOP-TIMEOUT: the child reached the recorded turn bound of 3 turns (LOOP_CHILD_TURNS_MAX_REVIEWER for the reviewer role) after 3 turn(s) — the run ended it and everything it started'
+  extra=$(cat <<EOF
+case "\$1" in
+  reviewer-pre-gate-prompt-restart*)
+    printf '%s\\n' 'BLOCKING: the restart names finding C' $(printf '%q' "$bound_line") > "\$PI_STUB_REPORT_REVIEWER" ;;
+  reviewer-pre-gate-prompt-retry*)
+    printf '%s\\n' 'NOTE: the retried reading names finding B' $(printf '%q' "$bound_line") > "\$PI_STUB_REPORT_REVIEWER" ;;
+  reviewer-pre-gate-prompt*)
+    printf '%s\\n' 'Scenario 1 PASS, 2 PASS, and the answer was cut on its way to the file' > "\$PI_STUB_REPORT_REVIEWER" ;;
+esac
+EOF
+)
+  stub_write "$d" "$STUB_CHANGE_REPORT" 'VERDICT: PASS' "$extra"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed: $out"
+  state=$(state_file "$p")
+  findings="$p/.pi/issue-loop/items/21/review-findings.md"
+
+  assert_eq "cut" "$(jq -r '.items[0].result' "$state")" "the round's second bound is still the item's cut"
+  [ -f "$findings" ] || fail "the two readings' findings were not kept as the item's evidence: no $findings"
+  assert_contains "$(cat "$findings")" "NOTE: the retried reading names finding B" \
+    "the first section quotes the reading the restart replaced, which is the retry and not the empty attempt before it"
+  assert_contains "$(cat "$findings")" "pre-gate-review-retry.md" "and names that reading's own report, so the quote is checkable"
+  assert_contains "$(cat "$findings")" "BLOCKING: the restart names finding C" "and the restart's own reading stands beside it"
+  assert_not_contains "$(cat "$findings")" "wrote no" \
+    "and the file names no reading that wrote nothing, because the reading it replaced wrote a finding"
+}
+
+# A restart is asked again in its own turn: its answer is cut on its way to the file, so the run asks once more
+# (`<round>-restart-retry.md`) and that retry is ended at a bound. The reading the retry replaced is the restart's,
+# not the round's first answer — a name-derived reading reaches back past the restart to a reading the retry was
+# never handed (issue #1045).
+case_run_aRetriedRestartQuotesTheReadingItRetried() {
+  # files: tools/loop/tests/fixtures/ tools/loop/loop.conf tools/loop/prompts/ tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out state findings bound_line extra
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # Round 1 is ended at the turn bound, the restart's answer is cut on its way to the file, the one retry of that
+  # restart is ended at the same bound again — the round's second bound is the item's cut, and the two readings are
+  # the restart's and the retry's.
+  bound_line='LOOP-TIMEOUT: the child reached the recorded turn bound of 3 turns (LOOP_CHILD_TURNS_MAX_REVIEWER for the reviewer role) after 3 turn(s) — the run ended it and everything it started'
+  extra=$(cat <<EOF
+case "\$1" in
+  reviewer-prompt-1.md)
+    printf '%s\\n' 'BLOCKING: the round names finding A' $(printf '%q' "$bound_line") > "\$PI_STUB_REPORT_REVIEWER" ;;
+  reviewer-prompt-1-restart.md)
+    printf '%s\\n' 'NOTE: the restart opened with finding B' > "\$PI_STUB_REPORT_REVIEWER" ;;
+  reviewer-prompt-1-restart-retry.md)
+    printf '%s\\n' 'BLOCKING: the retried restart names finding C' $(printf '%q' "$bound_line") > "\$PI_STUB_REPORT_REVIEWER" ;;
+esac
+EOF
+)
+  stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' "$extra"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed: $out"
+  state=$(state_file "$p")
+  findings="$p/.pi/issue-loop/items/21/review-findings.md"
+
+  assert_eq "cut" "$(jq -r '.items[0].result' "$state")" "the round's second bound is still the item's cut"
+  [ -f "$findings" ] || fail "the two readings' findings were not kept as the item's evidence: no $findings"
+  assert_contains "$(cat "$findings")" "NOTE: the restart opened with finding B" \
+    "the first section quotes the reading the retry replaced, which is the restart's own report"
+  assert_contains "$(cat "$findings")" "reviewer-report-1-restart.md" "and names that reading's report, so the quote is checkable"
+  assert_contains "$(cat "$findings")" "BLOCKING: the retried restart names finding C" "and the retry's own reading stands beside it"
+  assert_not_contains "$(cat "$findings")" "the round names finding A" \
+    "and the round's first answer — a reading the retry was never handed — is not quoted in its place"
 }
 
 case_run_mergesAFinishedAttemptAndClosesTheItem() {

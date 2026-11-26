@@ -1513,6 +1513,14 @@ while true; do
   # reason: the run may work several items, and an item whose round was not cut twice must not inherit the evidence of
   # one that was.
   review_findings_file=""
+  # The reading the round's last attempt stands in place of — the round before the gate's and the reviewed round's —
+  # is the report the run had in hand a line before it named the next attempt, and only the caller holds it:
+  # `<round>-restart.md` is the same name whichever attempt was restarted, and a round whose answer was cut on its way
+  # to the file is asked again before it is ever restarted, so a reading taken off the final report's name reaches
+  # past the one it replaced (issue #1045). Empty until an attempt replaces another, so a round the run cut once keeps
+  # the shape it had.
+  pre_gate_replaced_report=""
+  review_replaced_report=""
   # What the round answered, when it answered and refused nothing (issue #813). The refusal verdicts above are what
   # the run's outcome reads; this is what the item's record keeps, and it is the round's own answer — `PASS` or `FAIL`,
   # the two the prompt asks for — so that an item which read a round and then ended on its gate does not record
@@ -1632,6 +1640,7 @@ while true; do
         if [ -z "$pre_gate_deadline" ] && [ -z "$(report_field "$pre_gate_report" LOOP-TIMEOUT)" ] &&
           ! answer_complete "$pre_gate_report" '^VERDICT: (PASS|FAIL)'; then
           loop_emit pre-gate-cut-retry last="$(last_line "$pre_gate_report")" --stderr
+          pre_gate_replaced_report="$pre_gate_report"
           pre_gate_report="$item_dir/pre-gate-review-retry.md"
           render_reviewer_prompt "$item_dir/reviewer-pre-gate-prompt-retry.md" "" \
             "$(cat "$LOOP_DIR/prompts/pre-gate-review.md")" "$review_inputs"
@@ -1652,6 +1661,7 @@ while true; do
           render_reviewer_prompt "$item_dir/reviewer-pre-gate-prompt-restart.md" "" \
             "$(cat "$LOOP_DIR/prompts/pre-gate-review.md")" "$review_inputs" \
             "$(review_restart_scope "$pre_gate_report" "$pre_gate_timeout_line" "round before the gate" "")"
+          pre_gate_replaced_report="$pre_gate_report"
           pre_gate_report="$item_dir/pre-gate-review-restart.md"
           progress note "#${issue} restarts the round before the gate in a fresh session: the run ended it at $pre_gate_timeout_line, and the findings it had written are handed to the restart"
           run_child "$item_dir/reviewer-pre-gate-prompt-restart.md" "$pre_gate_report"
@@ -1680,8 +1690,10 @@ while true; do
             pre_gate_refusal="the run's deadline passed while the pre-gate reviewer was running — the round was cut, not refused, so the change is left for the next run"
             # The restart the run paid for was ended at a bound too, so this reading is the second of two and what both
             # wrote is kept for whoever resumes the item (issue #987). The call prints nothing unless the report's own
-            # name says it is a restart, so a round the deadline ended once keeps the shape it had.
-            review_findings_file=$(review_findings_for_double_cut "$item_dir" "$pre_gate_report" || true)
+            # name says it is a restart, so a round the deadline ended once keeps the shape it had. The reading this
+            # restart stands in place of is the one the run had in hand before it named the restart — the retry, when
+            # the round's first answer was cut on its way to the file — and not the name of its first attempt (#1045).
+            review_findings_file=$(review_findings_for_double_cut "$item_dir" "$pre_gate_report" "$pre_gate_replaced_report" || true)
           elif [ -n "$pre_gate_timeout_line" ]; then
             pre_gate_cut=1
             pre_gate_refusal_verdict="cut-short"
@@ -1694,7 +1706,7 @@ while true; do
             # …and, when this is the second bound this round took, what the two readings wrote (issue #987). A
             # restart handed the first reading's findings in its prompt and wrote none of them down, so without this
             # the run's account of the change dies with the sessions that produced it.
-            review_findings_file=$(review_findings_for_double_cut "$item_dir" "$pre_gate_report" || true)
+            review_findings_file=$(review_findings_for_double_cut "$item_dir" "$pre_gate_report" "$pre_gate_replaced_report" || true)
             round_bound_round="pre-gate"
             round_bound_line=$(bound_key_value "$pre_gate_timeout_line")
             round_bound_key="${round_bound_line%% *}"
@@ -2287,6 +2299,7 @@ ${timeout_claim:-the recorded context bound}${continuation_phases:+ · the phase
       # write by any of them is the round's write and not only the final child's.
       review_attempt=""
       review_restart_section=""
+      review_replaced_report=""
       review_cut_twice=0
       review_restarts_used=0
       # The round is announced on the branch *before* the reviewer starts, so an answer that never arrives is a
@@ -2312,6 +2325,7 @@ ${timeout_claim:-the recorded context bound}${continuation_phases:+ · the phase
         if [ -z "$reviewer_deadline" ] && [ -z "$(report_field "$reviewer_report" LOOP-TIMEOUT)" ] &&
           ! answer_complete "$reviewer_report" '^VERDICT: (PASS|FAIL)'; then
           loop_emit review-answer-cut-retry round="$round" last="$(last_line "$reviewer_report")" --stderr
+          review_replaced_report="$reviewer_report"
           reviewer_report="$item_dir/reviewer-report-$round$review_attempt-retry.md"
           render_reviewer_prompt "$item_dir/reviewer-prompt-$round$review_attempt-retry.md" "$correction_scope" "" \
             "$review_inputs" "$review_restart_section"
@@ -2341,6 +2355,7 @@ ${timeout_claim:-the recorded context bound}${continuation_phases:+ · the phase
           review_restart_section=$(review_restart_scope "$reviewer_report" "$reviewer_timeout_line" \
             "round $round after the gate" "${pre_gate_report:-}")
           progress note "#${issue} restarts review round $round in a fresh session: the run ended it at $reviewer_timeout_line, and the findings it had written are handed to the restart"
+          review_replaced_report="$reviewer_report"
           reviewer_report="$item_dir/reviewer-report-$round-restart.md"
           reviewer_prompt="$item_dir/reviewer-prompt-$round-restart.md"
           review_attempt="-restart"
@@ -2384,8 +2399,11 @@ ${timeout_claim:-the recorded context bound}${continuation_phases:+ · the phase
         blocked_reason="the run's deadline passed while the reviewer of round $round was running — the round was cut, not refused, so the change is left for the next run"
         # …and, when this reading is the restart of a round the run had already cut, what both readings wrote (issue
         # #987). The restart was handed the first reading's findings in its prompt and wrote none of them down, so a
-        # person who takes the kept patch has no account of the change at all unless this file exists.
-        review_findings_file=$(review_findings_for_double_cut "$item_dir" "$reviewer_report" || true)
+        # person who takes the kept patch has no account of the change at all unless this file exists. The reading this
+        # attempt stands in place of is the one the run had in hand before it named this one — `<round>-restart.md`
+        # when the restart's own answer was cut on its way to the file, the round's first attempt when it was not (issue
+        # #1045) — and not a name derived from this report's.
+        review_findings_file=$(review_findings_for_double_cut "$item_dir" "$reviewer_report" "$review_replaced_report" || true)
         break
       fi
       # The child's own turn bound ends a child the same way (`LOOP_CHILD_TURNS_MAX_<ROLE>`, issues #686 and #784), and
@@ -2410,8 +2428,9 @@ ${timeout_claim:-the recorded context bound}${continuation_phases:+ · the phase
         # The round's own ending, recorded where a reader can count it (issue #923): beside the class the item now
         # carries, the bound travels in the round's own field — its number, its key and the figure it reached.
         # …and what the two readings of a round the run cut twice wrote (issue #987), for the reason the arm above
-        # states: the second bound is the item's cut, and what ended it leaves no answer to read.
-        review_findings_file=$(review_findings_for_double_cut "$item_dir" "$reviewer_report" || true)
+        # states: the second bound is the item's cut, and what ended it leaves no answer to read. The reading this
+        # attempt stands in place of is the caller's, for the reason the arm above states as well (issue #1045).
+        review_findings_file=$(review_findings_for_double_cut "$item_dir" "$reviewer_report" "$review_replaced_report" || true)
         round_bound_round="$round"
         round_bound_line=$(bound_key_value "$reviewer_timeout_line")
         round_bound_key="${round_bound_line%% *}"

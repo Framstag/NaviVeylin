@@ -6,6 +6,12 @@
     "status": "open",
     "source": "ci"
   },
+  "classTypes": {
+    "comment": "The tracker type a row's class files its item as. A class is this project's label vocabulary (`tools/tooling.json` names it) and a type is the tracker account's own — `Bug`, `Task`, `Feature` — so the mapping is project data beside `labels` and `escalation` rather than a value the engine names (design D12). A row may declare its own `type`, the override a person uses where the derivation's judgement is theirs, an `improvement` being a `Task` or a `Feature`; a class neither the row nor this mapping names is refused as `row-type-unmapped` before any filing.",
+    "bug": "Bug",
+    "improvement": "Task",
+    "feature": "Feature"
+  },
   "escalation": {
     "comment": "A condition that keeps returning is a specification or design problem, not an implementation one, so past `maxRecurrences` reopenings the check stops reopening and hands the issue to a person (design D6). The two labels are the whole label write of an escalation, and neither authorises automated work.",
     "maxRecurrences": 3,

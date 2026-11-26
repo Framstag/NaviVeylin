@@ -119,6 +119,17 @@ sensors_row_field() { # <row-json> <key>
   jq -r --arg k "$2" 'if has($k) then (.[$k] | if type == "string" then . else tojson end) else "" end' <<< "$1"
 }
 
+# The tracker type one row's issues carry: a `type` the row declares is the override a person uses where the
+# derivation's judgement is theirs, and otherwise the class the row declares is read through the registry's own
+# class-to-type mapping. A type is the account's name and a class is this project's, so the mapping is the
+# registry's data and the engine names neither side (design D12); empty when neither names one.
+sensors_row_type() { # <row-json>
+  local value
+  value=$(sensors_row_field "$1" type)
+  [ -n "$value" ] || value=$(jq -r --arg class "$(sensors_row_field "$1" class)" '.classTypes[$class] // empty' "$SENSORS_REGISTRY")
+  printf '%s\n' "$value"
+}
+
 sensors_registry_value() { # a jq path, e.g. .labels.source
   jq -r "$1 // empty" "$SENSORS_REGISTRY"
 }
@@ -217,8 +228,13 @@ sensors_row_problems() { # <row-json> → one reason per line, empty when the ro
   # tooling's own reader, so a row cannot introduce a label by declaring it.
   value=$(sensors_row_field "$row" class)
   if [ -n "$value" ]; then
-    issues_core Policy labels --profile "$SENSORS_PROFILE" "class${separator}${value}" >/dev/null 2>&1 ||
+    if ! issues_core Policy labels --profile "$SENSORS_PROFILE" "class${separator}${value}" >/dev/null 2>&1; then
       printf 'row-class-outside-the-vocabulary: %s\n' "$value"
+    elif [ -z "$(sensors_row_type "$row")" ]; then
+      # A class with no type behind it would file an untyped item — the state the metadata check reports and no
+      # check may create — so the class the mapping does not cover is refused by name before any filing (D12).
+      printf 'row-type-unmapped: %s\n' "$value"
+    fi
   fi
   value=$(sensors_row_field "$row" category)
   if [ -n "$value" ]; then

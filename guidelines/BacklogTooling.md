@@ -12,7 +12,8 @@ backlog itself — what an item is, what the tracker holds, who may write what, 
 
 - **Rule: a check is a declared row, not a script.** A check is the command to run, how often, the bound it
   compares against, how many consecutive runs its verdict needs, how many items one run of it may file, the kind
-  and area its items carry, and whether it owns the item's closure. Adding a check is a row.
+  and area its items carry, the tracker type that class maps to in the registry (a type is the account's own
+  name, so no engine may hold it, D12), and whether it owns the item's closure. Adding a check is a row.
 
 The three-value outcome a run of a check writes — a present condition files, reopens or annotates an item; a
 cleared one comments the measurement and closes once the consecutive count is met; a failed one writes nothing and

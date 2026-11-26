@@ -606,6 +606,24 @@ case_registry_everyRowIsComplete() {
     sensors_resolve
     sensors_registry_problems' 2>&1)
   assert_contains "$out" "registry-record-status-missing" "a registry with no record state is reported by name"
+
+  # The kind a row declares decides the tracker type its item carries, and the mapping is the registry's: a
+  # class the mapping does not cover would file an untyped item, so it is refused by name before any filing.
+  out=$(cd "$(throwaway_project "$(fixture registry-no-class-type.json)")" && bash -c '
+    source "$SENSORS_ENGINE/lib.sh"
+    sensors_resolve
+    sensors_registry_problems' 2>&1)
+  assert_contains "$out" "row-type-unmapped" "a class the type mapping does not cover is reported by name"
+
+  # The type is the row's own where a person declared one, and its class's mapping otherwise.
+  out=$(cd "$SENSORS_REPO_ROOT" && bash -c '
+    source "$SENSORS_ENGINE/lib.sh"
+    sensors_resolve
+    printf "%s|%s|%s\n" \
+      "$(sensors_row_type "{\"class\":\"bug\"}")" \
+      "$(sensors_row_type "{\"class\":\"improvement\"}")" \
+      "$(sensors_row_type "{\"class\":\"improvement\",\"type\":\"Feature\"}")"' 2>&1)
+  assert_eq "Bug|Task|Feature" "$out" "a row's declared type wins over the class mapping"
 }
 
 case_lib_rejectsAMalformedFinding() {

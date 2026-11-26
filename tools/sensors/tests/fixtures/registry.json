@@ -3,6 +3,7 @@
   "comment": "A fixture registry for the sensor tooling's offline cases: the rows point at the fixture sensors, so `run.sh` exercises the whole lifecycle without a real measurement.",
   "namespace": "sensor",
   "labels": { "status": "open", "source": "ci" },
+  "classTypes": { "bug": "Bug", "improvement": "Task", "feature": "Feature" },
   "escalation": { "maxRecurrences": 3, "labels": ["agent/needs-decision", "status/on-hold"] },
   "record": { "status": "on-hold" },
   "maxFilings": 10,

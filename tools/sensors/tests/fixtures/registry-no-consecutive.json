@@ -6,6 +6,7 @@
     "status": "open",
     "source": "ci"
   },
+  "classTypes": { "bug": "Bug", "improvement": "Task", "feature": "Feature" },
   "escalation": {
     "maxRecurrences": 3,
     "labels": [

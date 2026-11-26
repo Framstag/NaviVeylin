@@ -37,11 +37,13 @@
 #     declaration of the label that authorises work is asserted and printed, and any other occurrence is a
 #     leak;
 #   * the engines: the issue tooling's wrappers and the Java core, the sensors' runner, guards, report,
-#     measurements and conditions, and the loop's scripts;
+#     measurements and conditions, and the loop's scripts and its typed core;
 #   * the templates: the loop's prompt skeletons, where the value's placeholders are substituted at
 #     render time and a hard-coded value would arrive in a child's prompt;
 #   * excluded: the source adapter (it reads this project's own record format and is *allowed* to know
-#     it), the case runner, the self-tests and the falsification harnesses, every test fixture, and the
+#     it), the case runner, the loop core's case list (the tooling's own vocabulary — a project whose
+#     category names include a word a case group is called would read it as a leak, and nothing else is in
+#     the file), the self-tests and the falsification harnesses, every test fixture, and the
 #     project's own documents and machine-local state.
 #
 # Reads text files only: no build, no device, no token, no network. Exit 0 the tree is portable, 1 a
@@ -222,7 +224,7 @@ list_engines() { # the code engines, relative to the root
     find tools/issues tools/sensors tools/loop -type f \
       \( -name '*.sh' -o -name '*.awk' -o -name '*.java' \) 2>/dev/null
   ) | sort -u | grep -v '/tests/' \
-    | grep -vE '/(Cases\.java|TodoAdapter\.java|TodoSections\.java|todo-md\.sh)$'
+    | grep -vE '/(Cases\.java|CaseList\.java|TodoAdapter\.java|TodoSections\.java|todo-md\.sh)$'
 }
 
 list_templates() { # the loop's prompt skeletons
@@ -238,6 +240,7 @@ tools/issues/import/todo-md.sh	the source adapter — reads the one-time prose r
 tools/issues/core/TodoAdapter.java	the same adapter: it names the record format and the provenance value it
 tools/issues/core/TodoSections.java	the adapter's grammar — the headings and the metadata line of that format
 tools/issues/core/Cases.java	the case runner
+tools/loop/core/CaseList.java	the loop's core's case list — the tooling's own vocabulary, and nothing else: a project's category names may include a word a case group is called
 tools/**/tests/**	the tooling's test code — the self-tests, cases, mutation sets and fixtures, excluded by location
 .pi/**	machine-local state: worktrees, captures, session logs
 openspec/**	the project's documents

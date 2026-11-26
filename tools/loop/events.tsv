@@ -55,6 +55,7 @@
 # composers	loop_change_archive_dir loop_tree_identity loop_change_restore loop_scratch_paths loop_bytes_of
 # composers	loop_pids_under loop_glob_escaped loop_leftover_patch_of loop_profile loop_open_pull_request_heads
 # composers	loop_commit_identity loop_roles_load loop_role loop_render loop_write_ignore loop_drop_ignorable_writes
+# composers	loop_core_classes
 # renderers	loop_emit loop_event_refuse loop_die loop_refuse loop_note loop_resolve relay loop_indent
 #
 # `# outcomes` is the kinds an item's recorded outcome is read from, and the spelling the state file uses for it: the

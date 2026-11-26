@@ -355,6 +355,12 @@ Moved to `DesignCrossVariant.md` §11.
   in `TileCacheRenderTest`), cross-check the number through a second path (`ProjectionUtils` for the real
   pixels-per-degree, rather than re-deriving DPI × `cos(lat)` with the formula under test), and locate the
   "single source of truth" before a dedup change — removing the duplicate must not remove the only instance.
+- **A typed value beats a stringly protocol.** Where two halves of one mechanism pass a value between them, name it
+  once and make the compiler carry the name: the loop's core (`tools/loop/core/`, `lib.sh`'s `loop_core`) is the
+  worked example — a verb's answer is one JSON document built from a declared field set, so a renamed field is a
+  refusal at the boundary instead of a string two scripts agreed on by memory, and a malformed input is refused
+  before anything is written. The cost is a compile per source digest, paid once and cached; the alternative is
+  what the loop had, 172 `jq` call sites whose vocabulary only a full suite could prove.
 
 ## 13. Superseded decisions
 

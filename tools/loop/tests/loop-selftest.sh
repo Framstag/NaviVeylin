@@ -463,6 +463,25 @@ core_ensure() {
   fi
   rm -rf "$selftest_core_claim" 2>/dev/null || true
   export ISSUES_CORE_CLASSES="$selftest_classes"
+  # The loop's own core is compiled here too, beside the issue tooling's, and into the digest-keyed cache the engine
+  # already uses (`tools/loop/lib.sh`, `loop_core_classes`): a case that asks for it runs the classes this driver
+  # verified, and a second call — this suite's or the next run's — compiles nothing. One line, one refusal, when no
+  # compiler answers, because an engine that carries the core and cannot compile it would run half of its cases and
+  # report itself green. The core is read through the engine's own path, which this suite builds by
+  # *linking* every engine file into a nested tree (`nested_tree`): `loop_core_digest` follows the link for exactly
+  # that reason, and `core#theDigestReadsASymlinkedCore` holds it.
+  # Asked for only when the engine carries a core. A fixture engine is a copy of the driver and of the shell it runs,
+  # not of `tools/loop/core/` — and a driver that compiled the core of the tree it happens to sit in would refuse
+  # every fixture suite with a missing compiler, for a core those cases never ask about (this change's third gate
+  # run, `driver#theCoreIsCompiledOncePerSuite`). The engine's own directory is the question, not the project's:
+  # `loop_core_classes` compiles `$LOOP_CORE_DIR`, so a tree without one has nothing to compile and nothing to say.
+  if [ -d "$LOOP_CORE_DIR" ]; then
+    LOOP_CORE_CLASSES=$(loop_core_classes) || {
+      echo "loop-selftest: the loop's Java core does not compile — JDK 17 or newer (javac) is required" >&2
+      exit 1
+    }
+    export LOOP_CORE_CLASSES
+  fi
 }
 
 export LOOP_PROJECT_ROOT="$root"
@@ -479,7 +498,7 @@ export PATH="$LOOP_FIXTURES:$LOOP_ISSUE_FIXTURES:$PATH"
 
 # shellcheck source=tools/loop/tests/loop-cases.sh
 source "$root/tools/loop/tests/loop-cases.sh"
-shell_cases=$(loop_shell_cases)
+shell_cases=$(loop_shell_cases) || exit 1
 
 # ── the three sets that name a case, compared (issue #929) ──────────────────────────────────────────────────
 # `LOOP_SHELL_CASES` *is* the declared set, so the selection list is the suite: a delta that replaces a row instead of

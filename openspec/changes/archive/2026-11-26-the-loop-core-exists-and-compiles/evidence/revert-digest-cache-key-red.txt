@@ -1,0 +1,5 @@
+core#theDigestIsTheCompileKey|   the cache directory is the release and the sources' digest: expected '17-1cb032eff670af97', got '17'
+--- core#theDigestIsTheCompileKey[0] (exit 1)
+  the cache directory is the release and the sources' digest: expected '17-1cb032eff670af97', got '17'
+FAIL core#theDigestIsTheCompileKey
+loop-selftest: 1 of 1 cases failed

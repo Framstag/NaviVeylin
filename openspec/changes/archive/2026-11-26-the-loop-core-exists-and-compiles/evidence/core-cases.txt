@@ -1,0 +1,15 @@
+PASS core#noPartialParseOnFailure
+PASS core#theStateAReadCannotParseIsRefused
+PASS core#theCoreListsItsOwnCases
+PASS core#aMissingCompilerIsOneRefusal
+PASS core#theAnswerIsOneJsonDocument
+PASS core#aMalformedInputIsARefusal
+PASS core#theStateIsWrittenByTheCore
+PASS core#theCoresCasesDeclareTheCore
+PASS core#aCoreCaseDeclaresItsFiles
+PASS core#oneSummaryCarriesBothSources
+PASS core#theDigestIsTheCompileKey
+PASS core#thePortabilityCheckReadsTheCore
+PASS core#oneCompilePerDigest
+loop-selftest: core 13 cases 24.43 s
+loop-selftest: all 13 cases passed (JDK 21, offline, no token, no sandbox) — 3.36 s, selection: --case core#*

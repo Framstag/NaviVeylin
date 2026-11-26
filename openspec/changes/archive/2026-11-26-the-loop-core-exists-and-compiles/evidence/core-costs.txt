@@ -1,0 +1,10 @@
+== cold compile + one call ==
+cold: 526 ms
+== warm call (digest cache hit) ==
+warm 1: 31 ms
+warm 2: 33 ms
+warm 3: 32 ms
+== the cache the digest named ==
+17-1cb032eff670af97
+== six counts, one verb call ==
+counts: 37 ms — {"blocked":0,"closed":0,"cut":0,"pending":0,"refused":0,"skipped":0}

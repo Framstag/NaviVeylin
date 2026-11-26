@@ -1,0 +1,5 @@
+core#noPartialParseOnFailure|   no partial document reached stdout: expected '', got '{"items":{}}'
+--- core#noPartialParseOnFailure[0] (exit 1)
+  no partial document reached stdout: expected '', got '{"items":{}}'
+FAIL core#noPartialParseOnFailure
+loop-selftest: 1 of 1 cases failed

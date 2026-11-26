@@ -1,0 +1,21 @@
+== the whole loop suite, on this tree, before the gate ==
+tools/loop/tests/loop-selftest.sh (no selection: every case the shell and the core own)
+
+PASS lines: 574 of 578
+loop-selftest: core 14 cases 20.97 s
+loop-selftest: 4 of 578 cases failed — 564.85 s
+
+The four, each read on its own after the run:
+  run#theWorkerPromptFitsItsBudget       PASS when run alone — the parallel pool's load, not this change
+  driver#anOwnedFunctionIsInItsOwnersFile  red at bfa4d22 too: tools/loop/report.sh defines action_add and
+                                         tools/loop/state.sh defines cmd_publish_refused, and neither name is in
+                                         its row of tools/loop/layout.tsv (the diff touches lib.sh's row only)
+  run#theQuotaSwitchIsExplicit            red at bfa4d22 too: the run's header prints quota=off because this
+                                         project's tools/loop/loop.conf arms no quota reader
+  run#aQuotaHoldPausesTheRunAndResumesIt  the same, one case further
+
+== the core's own cases, unchanged sources, twice ==
+tools/loop/tests/loop-selftest.sh --group core
+
+loop-selftest: core 14 cases 23.92 s
+loop-selftest: all 14 cases passed (JDK 21, offline, no token, no sandbox) — 3.25 s, selection: --group core

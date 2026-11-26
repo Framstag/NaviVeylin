@@ -131,6 +131,7 @@ LOOP_SHELL_CASES=(
   'worktree#anIdeBuildDirectoryDoesNotBlockTheMerge'
   'worktree#aTrackedEditStillBlocksTheMerge'
   'worktree#theGatesTallyTravelsWithTheChangeItMeasured'
+  'worktree#aBranchWhoseRunEndedBlockedIsNotAdoptable'
   'prescreen#aTierAItemPassesUnchanged'
   'prescreen#anIssueTwoOpenChangesNameIsRefused'
   'prescreen#aChangeThatIsNoLongerReadyIsRefused'
@@ -981,6 +982,7 @@ loop_run_shell_case() {
     'worktree#anIdeBuildDirectoryDoesNotBlockTheMerge') fn=case_worktree_anIdeBuildDirectoryDoesNotBlockTheMerge ;;
     'worktree#aTrackedEditStillBlocksTheMerge') fn=case_worktree_aTrackedEditStillBlocksTheMerge ;;
     'worktree#theGatesTallyTravelsWithTheChangeItMeasured') fn=case_worktree_theGatesTallyTravelsWithTheChangeItMeasured ;;
+    'worktree#aBranchWhoseRunEndedBlockedIsNotAdoptable') fn=case_worktree_aBranchWhoseRunEndedBlockedIsNotAdoptable ;;
     'prescreen#aTierAItemPassesUnchanged') fn=case_prescreen_aTierAItemPassesUnchanged ;;
     'prescreen#anIssueTwoOpenChangesNameIsRefused') fn=case_prescreen_anIssueTwoOpenChangesNameIsRefused ;;
     'prescreen#aChangeThatIsNoLongerReadyIsRefused') fn=case_prescreen_aChangeThatIsNoLongerReadyIsRefused ;;
@@ -4513,20 +4515,29 @@ case_worktree_theGatesTallyTravelsWithTheChangeItMeasured() {
     "a change whose evidence carries the gate's own tally reads as verified: $out"
   assert_contains "$out" "demo_suite.sh.xml" "and the state names the tally it read"
 
-  # A gate that did not pass carries nothing: the item is blocked on it, and its red tally is not a proof of anything.
+  # A gate that did not pass carries its verdict, and nothing else (issue #1035): the run that ended on it is why this
+  # branch must not be adopted, so the tally travels as `gate-red.log` — the verdict alone, never a step's log or XML,
+  # which `verification_record_green` would read as a measurement the blocked run never took.
   run_worktree "$p" start-item 22 the-gate-that-did-not-pass >/dev/null || fail "the second item did not start"
   mkdir -p "$w/$blocked/evidence"
   printf 'archived\n' > "$w/$blocked/proposal.md"
   printf '%s\n' "$red" > "$w/$blocked/evidence/red-on-HEAD.xml"
   printf '<testsuite name="loop-selftest" tests="543" failures="1" errors="0"></testsuite>\n' \
     > "$tally/demo_suite.sh.xml"
-  printf 'LOOP-GATE: tests=543 failures=1 errors=0 (/)\n' > "$tally/gate.log"
+  printf 'LOOP-GATE-STEP: demo_suite — red\nLOOP-GATE: tests=543 failures=1 errors=0 (/)\n' > "$tally/gate.log"
   out=$(run_worktree "$p" end-item 22 the-gate-that-did-not-pass 2>&1) || fail "end-item of the blocked item failed: $out"
+  [ -f "$w/$blocked/evidence/gate-red.log" ] ||
+    fail "the red tally did not travel with the change it blocked: $(ls "$w/$blocked/evidence")"
+  assert_contains "$(< "$w/$blocked/evidence/gate-red.log")" 'LOOP-GATE: tests=543 failures=1 errors=0' \
+    "the record carries the gate's own tally line"
+  assert_not_contains "$(< "$w/$blocked/evidence/gate-red.log")" 'PASS ' \
+    "and nothing it carries can read as a verification"
   [ ! -e "$w/$blocked/evidence/demo_suite.sh.xml" ] ||
-    fail "a red tally was carried into the change it blocked"
-  assert_eq "archived-not-green" \
-    "$(run_worktree "$p" branch-state 22 fix/issue-22-the-gate-that-did-not-pass 2>/dev/null | cut -f1)" \
-    "a change whose only record is the red one its gate wrote is still not verified"
+    fail "a step's XML travelled with the red gate: $(ls "$w/$blocked/evidence")"
+  out=$(run_worktree "$p" branch-state 22 fix/issue-22-the-gate-that-did-not-pass 2>&1)
+  assert_eq "gate-red" "$(printf '%s\n' "$out" | cut -f1)" \
+    "a branch whose gate did not pass states that, not that it is unverified: $out"
+  assert_contains "$out" "gate-red.log" "and the state names the record it read"
 
   # A change that already answers for its own gate is left exactly as it stands: the convention every worker followed
   # before this was enforced does not become two copies of one tally.
@@ -4541,6 +4552,39 @@ case_worktree_theGatesTallyTravelsWithTheChangeItMeasured() {
   [ ! -e "$w/$answered/evidence/demo_suite.sh.xml" ] ||
     fail "a change that answers for its own gate had the gate's tally written beside it"
   [ -f "$w/$answered/evidence/TEST-the-cases-own.xml" ] || fail "the change's own record was removed"
+  return 0
+}
+
+# The item a run blocked is its owner's, and the branch that run left must not be adopted by the next one (#1035).
+# The verdict is a line in the run's own tail report, under the item's own directory — machine-local — so `end-item`
+# carries it onto the branch as the archived change's `evidence/gate-red.log`, and the state reads that record before it
+# asks whether the change is verified: a blocked attempt's evidence holds the logs its focused runs made, and a green
+# one among them is exactly what made the branch adoptable.
+case_worktree_aBranchWhoseRunEndedBlockedIsNotAdoptable() {
+  # files: tools/loop/state.sh tools/loop/worktree.sh tools/loop/lib.sh tools/loop/loop.conf tools/pi-child-events.sh tools/tooling.json
+  local p w tally change out status
+  p=$(new_project); w="$p/.pi/worktrees/loop"; tally="$w/app/build/test-results/loop-gate"
+  init_state "$p" 1 90
+  run_worktree "$p" create --branch loop-test >/dev/null || fail "worktree create failed"
+  change="openspec/changes/archive/2026-01-05-fix-a-blocked-item"
+  run_worktree "$p" start-item 31 a-blocked-item >/dev/null || fail "the blocked item did not start"
+  mkdir -p "$w/$change/evidence" "$tally"
+  printf 'archived\n' > "$w/$change/proposal.md"
+  printf 'PASS worktree#theCaseTheWorkerRan\n' > "$w/$change/evidence/green-one-case.log"
+  printf 'LOOP-GATE-STEP: loop-selftest.sh — red\nLOOP-GATE: tests=1261 failures=1 errors=0 (/)\n' > "$tally/gate.log"
+  printf 'the fix\n' > "$w/blocked-fix.txt"
+  out=$(run_worktree "$p" end-item 31 a-blocked-item 2>&1) || fail "end-item of the blocked item failed: $out"
+  out=$(run_worktree "$p" branch-state 31 fix/issue-31-a-blocked-item 2>&1)
+  assert_eq "gate-red" "$(printf '%s\n' "$out" | cut -f1)" \
+    "the branch whose run ended on a red gate states that, not adoptable: $out"
+  assert_contains "$out" "gate-red.log" "and the state names the record it read"
+  [ -f "$w/$change/evidence/gate-red.log" ] ||
+    fail "the blocked run's verdict did not travel with its change: $(ls "$w/$change/evidence")"
+  out=$(run_worktree "$p" adopt-item 31 fix/issue-31-a-blocked-item 2>&1); status=$?
+  assert_eq "5" "$status" "a branch whose run ended on a red gate is not adopted"
+  assert_contains "$out" "ended on a red gate" \
+    "the refusal names the red gate rather than a missing verification"
+  [ ! -f "$p/blocked-fix.txt" ] || fail "the blocked attempt's change was merged onto the base"
   return 0
 }
 

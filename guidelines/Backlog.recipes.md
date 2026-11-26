@@ -1586,9 +1586,13 @@ verification record, a reviewer's refusal, a round announced and never answered 
 pre-screen records it as the decision the run escalates. The green record's origin is the run's own landing step, not the
 worker's diligence: the gate writes its tally and its log under the build output `LOOP_GATE_TALLY_DIR` names, which
 is not the change and which the next item's start clears, so `end-item` copies them into the archived change's
-`evidence/` unless that change already answers for its own gate — and a gate that did not pass carries nothing,
-because its red tally is the record of the item it blocks. The case is
-`worktree#theGatesTallyTravelsWithTheChangeItMeasured`. A branch that **is** admissible and still cannot be
+`evidence/` unless that change already answers for its own gate — and a gate that did not pass travels as its verdict
+and nothing else: `evidence/gate-red.log`, holding the tally's `LOOP-GATE:` and `LOOP-GATE-STEP:` lines, copied whether
+or not the change answers for a gate already. That verdict is the run's own statement that its item is blocked, and the
+next run reads it before it reads the verification the blocked attempt's focused runs left — `branch-state` answers
+`gate-red` and `adopt-item` refuses the branch there, instead of adopting an item its own run had refused. The cases are
+`worktree#theGatesTallyTravelsWithTheChangeItMeasured` and
+`worktree#aBranchWhoseRunEndedBlockedIsNotAdoptable`. A branch that **is** admissible and still cannot be
 merged is the tree's or the base's refusal: the project tree is not clean, it is on another branch, the base
 moved — each of them a state a later run finds whole, so the item is work. A branch whose replay conflicts is the
 same work retried and unresolved by the run: nothing here rebases or reworks it, so it is refused and recorded

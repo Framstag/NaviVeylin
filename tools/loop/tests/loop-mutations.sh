@@ -1635,6 +1635,9 @@ MUTATIONS=(
   # 1027.1 — the report line that names a refused publish. Without it the refusal is a stderr event again and the
   # branch the remote does not carry is a fact only the events hold, which is the state the item was filed on.
   '1027.1@-@tools/loop/report.sh@worktree#aRejectedPushIsRecordedOnTheItem@the refused publish the report names, so the branch the remote does not carry is a fact no report line holds (issue #1027)@s|^printf .publish refused: %s.n. .*$|printf "publish refused: none"|'
+  # 1035.1 — the state that names the verdict a blocked run carried. Without the arm `branch_state_of` answers the
+  # verification the blocked attempt's own case log looked like, which is how an item its run had refused was adopted.
+  '1035.1@-@tools/loop/worktree.sh@worktree#aBranchWhoseRunEndedBlockedIsNotAdoptable@the arm that answers gate-red for a branch whose run ended on a gate that did not pass, so the one case log a blocked attempt copied reads as the verification of its change and the item is adopted and closed (issue #1035)@s|^  \[ -z "\$gate_red" \] \|\| .*$|  : # the mutation drops the gate-red arm|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

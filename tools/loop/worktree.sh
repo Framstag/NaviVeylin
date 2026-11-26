@@ -451,22 +451,36 @@ verification_record_green() { # <name> <content> → 0 when the record is a meas
 # `archived-not-green` and escalated a decision nobody owed (`carried_verification` below). `end-item` therefore
 # copies the tally and the gate's log into the archived change's `evidence/` — a directory and nowhere else, the one
 # place a write after the gate is allowed — when that change carries no green record of its own, and never over a
-# file the worker wrote. A gate that did not pass carries nothing: its red tally stays the record of the item it
-# blocks, so nothing here turns an unverified attempt into a verified one.
-carry_gate_record() { # → the gate's records in the archived change the tree carries, when it carries no green one
-  local rel tally dir name greens
+# file the worker wrote. A gate that did not pass travels too, as its verdict and nothing else (issue #1035): the
+# run that ended on it is the reason its branch must not be adopted, and the tail that wrote the verdict left it in
+# the item's own directory, which is machine-local. `gate-red.log` therefore carries the tally's `LOOP-GATE:` and
+# `LOOP-GATE-STEP:` lines alone — never a step's log or XML, which `verification_record_green` would read as the
+# measurement a blocked run never took.
+carry_gate_record() { # → the gate's record in the archived change the tree carries, green or red
+  local rel tally dir name greens state
   rel=$(loop_conf_value LOOP_GATE_TALLY_DIR)
   [ -n "$rel" ] || return 0
   case "$rel" in /*) tally="$rel" ;; *) tally="$worktree/$rel" ;; esac
   # No log is a gate that claimed no tally, or one that was cut before its verdict: neither measured this change.
   [ -f "$tally/gate.log" ] || return 0
-  [ "$(gate_tally_state "$(grep -a '^LOOP-GATE:' "$tally/gate.log" 2>/dev/null | tail -1)")" = green ] || return 0
+  state=$(gate_tally_state "$(grep -a '^LOOP-GATE:' "$tally/gate.log" 2>/dev/null | tail -1)")
+  # `unknown` counted nothing, which is no verdict to carry either way.
+  case "$state" in green|red) ;; *) return 0 ;; esac
   # The archive the item just made is the one the tree carries and HEAD does not: `end-item` is its only committer, so
   # every directory holding a file git does not track is a change of this item's, named once however many files it
   # holds — `--directory` cannot be used for that, because a fixture whose archive holds nothing tracked collapses to
   # the archive root itself.
   while IFS= read -r dir; do
     [ -d "$worktree/$dir" ] || continue
+    if [ "$state" = red ]; then
+      # The verdict alone, and copied over the change whether or not it answers for a gate already: it is written
+      # once, so a re-run of `end-item` never doubles it.
+      mkdir -p "$worktree/$dir/evidence" 2>/dev/null || continue
+      [ -e "$worktree/$dir/evidence/gate-red.log" ] && continue
+      grep -a -e '^LOOP-GATE:' -e '^LOOP-GATE-STEP:' "$tally/gate.log" \
+        > "$worktree/$dir/evidence/gate-red.log" 2>/dev/null || true
+      continue
+    fi
     greens=0
     for name in "$worktree/$dir"/evidence/*.xml "$worktree/$dir"/evidence/*.log; do
       [ -f "$name" ] || continue
@@ -563,6 +577,26 @@ carried_verification() { # <branch> <base> <change> → the evidence it carries,
   printf '%s\n' "$files" | sed "s#^openspec/changes/archive/$change/evidence/##" | paste -sd, -
 }
 
+# The verdict a run ended on is evidence too (issue #1035). A blocked attempt's evidence is the logs its focused runs
+# made — which is exactly what `carried_verification` reads as a green record — and the run that refused it left its
+# `LOOP-VERDICT: blocked` and its red `LOOP-GATE:` line in the item's own directory, machine-local, where the next run
+# never looks. `end-item` therefore carries that verdict onto the branch as `evidence/gate-red.log`, and this reads it
+# back out of the branch itself: the records whose own `LOOP-GATE:` line is red, printed as one comma-separated list
+# so the state can name the record it read. A reader of the merge must ask this before it asks whether the change is
+# verified, because a red gate is *why* the verification is incomplete.
+carried_gate_red() { # <branch> <change> → the evidence stating a red gate, comma-separated, or nothing
+  local branch="$1" change="$2" files name reds=""
+  files=$(gitr ls-tree -r --name-only "$branch" -- "openspec/changes/archive/$change/evidence" 2>/dev/null)
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    case "$name" in *.log|*.md|*.txt) ;; *) continue ;; esac
+    [ "$(gate_tally_state "$(gitr show "$branch:$name" 2>/dev/null | grep -a '^LOOP-GATE:' | tail -1)")" = red ] || continue
+    reds="${reds:+$reds,}${name##*/}"
+  done <<< "$files"
+  [ -n "$reds" ] || return 0
+  printf '%s\n' "$reds"
+}
+
 # The reviewer's verdict is evidence, and the *round* is evidence too (#262): the answer alone cannot be told
 # apart from a reviewer that never wrote one, so a branch whose round was announced and never answered looked
 # exactly like a branch whose round passed. Measured 2026-10-22: the round-2 reviewer of #249 was killed
@@ -611,6 +645,8 @@ carried_review_state() { # <branch> <change> → "<round> <passed|failed|request
 #                      (issue #785), so it does not make the branch a person's
 #   review-refused     the same, and the reviewer refused it — the owner's (#185)
 #   review-unanswered  the same, and the last review round was announced and never answered — the owner's (#262)
+#   gate-red           the run that made the change ended on a gate that did not pass and carried its verdict as
+#                      `evidence/gate-red.log` — the owner's, and never merged (#1035)
 #   archived-not-green the change is there and never verified — the owner's (#176)
 #   unfinished         commits and no archived change of its own: a blocked attempt, so work rather than a question
 #   rework-cut         the reviewer's refusal of the last round and the rework of it that the run's own bound
@@ -618,7 +654,7 @@ carried_review_state() { # <branch> <change> → "<round> <passed|failed|request
 #   landed             every commit is already in the base — the item is startable on that branch again
 #   absent             there is no such branch
 branch_state_of() { # <issue> <branch> <base> → the state, one word
-  local issue="$1" branch="$2" base="$3" change evidence review_state
+  local issue="$1" branch="$2" base="$3" change evidence review_state gate_red
   gitr rev-parse --verify --quiet "refs/heads/$branch" >/dev/null || { printf 'absent\n'; return 0; }
   if gitr merge-base --is-ancestor "$branch" "$base" 2>/dev/null; then
     printf 'landed\n'
@@ -626,6 +662,9 @@ branch_state_of() { # <issue> <branch> <base> → the state, one word
   fi
   change=$(carried_change "$issue" "$branch" "$base")
   [ -n "$change" ] || { printf 'unfinished\n'; return 0; }
+  # The verdict before the verification: a red gate is the reason the verification is the run's own partial one.
+  gate_red=$(carried_gate_red "$branch" "$change")
+  [ -z "$gate_red" ] || { printf 'gate-red\n'; return 0; }
   evidence=$(carried_verification "$branch" "$base" "$change")
   [ -n "$evidence" ] || { printf 'archived-not-green\n'; return 0; }
   review_state=$(carried_review_state "$branch" "$change")
@@ -647,6 +686,10 @@ cmd_branch_state() { # <issue> <branch> → <state> TAB <change> TAB <evidence>
     adoptable|review-refused|review-unanswered|archived-not-green|rework-cut)
       change=$(carried_change "$issue" "$branch" "$base")
       evidence=$(carried_verification "$branch" "$base" "$change")
+      ;;
+    gate-red)
+      change=$(carried_change "$issue" "$branch" "$base")
+      evidence=$(carried_gate_red "$branch" "$change")
       ;;
   esac
   printf '%s\t%s\t%s\n' "$state" "$change" "$evidence"
@@ -750,13 +793,18 @@ cmd_adopt_item() {
   # adoption happens before the run's worktree exists, so the worktree is not required here.
   check_base
   check_checkout
-  local base change evidence dirty commits who_name who_email review_state
+  local base change evidence dirty commits who_name who_email review_state gate_red
   base=$(state_base)
   gitr rev-parse --verify --quiet "refs/heads/$branch" >/dev/null ||
     loop_refuse "there is no branch $branch to adopt"
   change=$(carried_change "$issue" "$branch" "$base")
   [ -n "$change" ] ||
     loop_refuse "branch $branch is not adopted — it adds no single archived change of its own"
+  # Before the verification refusal: a red gate is what ended the run that made this change, and naming it is the
+  # sentence the owner can act on (issue #1035).
+  gate_red=$(carried_gate_red "$branch" "$change")
+  [ -z "$gate_red" ] ||
+    loop_refuse "branch $branch is not adopted — the run that made $change ended on a red gate (evidence/$gate_red): the item is its owner's, and the change is not merged onto the base"
   evidence=$(carried_verification "$branch" "$base" "$change")
   [ -n "$evidence" ] ||
     loop_refuse "branch $branch is not adopted — the change $change carries no green verification record"

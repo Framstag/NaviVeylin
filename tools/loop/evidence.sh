@@ -210,8 +210,12 @@ blocking_count() { # blocking_count <report file> → the count, or empty when t
 # parse that read either as naming nothing would skip the round the first of them paid for — a round that passed.
 # Across the archive's reviewer reports, every `VERDICT: FAIL` report carries a finding line, at line start or
 # emphasis-wrapped. Over-matching a quoted `> BLOCKING:` line spends a round and never skips one.
+blocking_finding_lines() { # blocking_finding_lines <report file> → the `BLOCKING:` lines as the reviewer wrote them
+  report_lines "$1" | grep -E '^[[:space:]>*_]*BLOCKING:' || true
+}
+
 blocking_findings() { # blocking_findings <report file> → how many `BLOCKING:` lines the report carries
-  report_lines "$1" | grep -cE '^[[:space:]>*_]*BLOCKING:' || true
+  blocking_finding_lines "$1" | grep -c . || true
 }
 
 # What a round that refused nothing leaves behind: its `NOTE:` findings, one per line as bullets, or the path of

@@ -353,6 +353,7 @@ LOOP_SHELL_CASES=(
   'run#reviewRoundsCapAtTwo'
   'run#reviewBudgetIsARecordedValue'
   'run#theWorkerPromptFitsItsBudget'
+  'run#theReworkPromptIsTheFileTheChildIsHanded'
   'run#aZeroRoundBudgetIsRefused'
   'run#aCorrectiveRefusalEarnsOneMoreRound'
   'run#aCorrectiveRoundIsHandedTheCorrections'
@@ -1215,6 +1216,7 @@ loop_run_shell_case() {
     'run#reviewRoundsCapAtTwo') fn=case_run_reviewRoundsCapAtTwo ;;
     'run#reviewBudgetIsARecordedValue') fn=case_run_reviewBudgetIsARecordedValue ;;
     'run#theWorkerPromptFitsItsBudget') fn=case_run_theWorkerPromptFitsItsBudget ;;
+    'run#theReworkPromptIsTheFileTheChildIsHanded') fn=case_run_theReworkPromptIsTheFileTheChildIsHanded ;;
     'run#aZeroRoundBudgetIsRefused') fn=case_run_aZeroRoundBudgetIsRefused ;;
     'run#aCorrectiveRefusalEarnsOneMoreRound') fn=case_run_aCorrectiveRefusalEarnsOneMoreRound ;;
     'run#aCorrectiveRoundIsHandedTheCorrections') fn=case_run_aCorrectiveRoundIsHandedTheCorrections ;;
@@ -13056,6 +13058,46 @@ case_run_theWorkerPromptFitsItsBudget() {
     "the record names the bound the composed prompt is read against"
   assert_contains "$(run_report "$p")" "worker prompt $bound" \
     "and the report states it beside the other bounds"
+}
+
+# The bound weighs the file the child is handed (issue #1088). `worker_prompt_bound_check` ran on the rework prompt
+# the run had *rendered* and the reviewer's whole report was appended two lines below it, so the largest prompt the
+# run composes — measured on item #1080, 42 409 B against a 29 000 B bound — was the one prompt the bound could never
+# fire on. The append now carries what a rework pass can act on, the `BLOCKING:` lines its refusal is defined by
+# (#1085) and the path of the report they were read from, and the check runs on the file `run_child` is given.
+case_run_theReworkPromptIsTheFileTheChildIsHanded() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/child.sh tools/loop/evidence.sh tools/loop/loop.conf tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
+  local d p out report rework handed bound big
+  d=$(scratch); p=$(new_project)
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
+  # The bound is read out of the configuration and never typed here, so a key that moves is a red case rather than a
+  # number this case keeps a second copy of.
+  bound=$(sed -n 's/^LOOP_WORKER_PROMPT_MAX_BYTES=\([0-9][0-9]*\)$/\1/p' "$LOOP_ENGINE/loop.conf" | tail -1)
+  [ -n "$bound" ] ||
+    fail "loop.conf records no LOOP_WORKER_PROMPT_MAX_BYTES — the bound the rework prompt is handed against"
+  # A refusal whose findings alone push the handed file over the bound: the arm is worth nothing on a file under it,
+  # and the report carries prose beside the findings, which the rework prompt does not re-send at every turn.
+  big=$(printf '%05000d' 0 | tr 0 x)
+  stub_write "$d" "$STUB_WORKER_REPORT" "BLOCKING: the rework prompt carries the finding its round refused on
+BLOCKING: $big
+PROSE-NOT-A-FINDING: the report's prose, which a rework pass reads at the path this block names
+LOOP-BLOCKING: 2
+VERDICT: FAIL"
+  out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed: $out"
+  report="$p/.pi/issue-loop/items/21/reviewer-report-1.md"
+  rework="$p/.pi/issue-loop/items/21/worker-prompt-round2.md"
+  [ -f "$rework" ] || fail "no rework prompt was written for the round that refused: $out"
+  handed=$(stat -c %s "$rework")
+  [ "$handed" -gt "$bound" ] ||
+    fail "this case's rework prompt is $handed B, not over the $bound B bound — the arm would pass on a check that never had to fire"
+  assert_contains "$out" "the worker-round2 prompt is $handed B" \
+    "the bound is measured on the file the child is handed, not on the prompt before the append: $out"
+  assert_contains "$(cat "$rework")" 'BLOCKING: the rework prompt carries the finding its round refused on' \
+    "what the round refused on is handed to the rework pass"
+  assert_contains "$(cat "$rework")" "$report" \
+    "and the report the findings were read from is one read away, by its own path"
+  assert_not_contains "$(cat "$rework")" 'PROSE-NOT-A-FINDING' \
+    "the report's prose is not re-sent with the prompt every turn of the rework session carries"
 }
 
 # Zero rounds is not a cheap review: the item would be blocked on a round that never ran, and the branch would

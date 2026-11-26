@@ -3084,7 +3084,11 @@ governs it.
   every item in silence
 - **AND** the bound the run read is recorded in its state and printed beside the bounds its other figures are read
   against, and a configuration that records no bound measures nothing and reports nothing
-- **Case**: `run#theWorkerPromptFitsItsBudget`
+- **AND** the file measured is the file the child is handed: a rework round's prompt is weighed after the reviewer's
+  refusal is appended to it, and that append carries the report's `BLOCKING:` lines and the report's own path
+  rather than the whole report, so the largest prompt the run composes is the one the bound weighs and the report's
+  prose is read at that path instead of re-sent with every turn
+- **Case**: `run#theWorkerPromptFitsItsBudget` and `run#theReworkPromptIsTheFileTheChildIsHanded`
 
 ### Requirement: A child is told what its own shell and tools refuse
 

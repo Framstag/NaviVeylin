@@ -26,6 +26,7 @@ attribute_red_gate	evidence.sh	run.sh
 blocked	report.sh	prescreen.sh
 block	evidence.sh	run.sh
 blocking_count	evidence.sh	run.sh
+blocking_finding_lines	evidence.sh	run.sh
 blocking_findings	evidence.sh	run.sh
 body	phase.sh	prescreen.sh
 bound_class_jq	lib.sh	report.sh state.sh

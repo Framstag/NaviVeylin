@@ -133,7 +133,10 @@ quotes no measurement. (The costs that motivated them are `guidelines/BuildGate.
   size is the recorded bound `LOOP_WORKER_PROMPT_MAX_BYTES` (`tools/loop/loop.conf`), and a prompt over it is a line in
   the run's own record and console naming the size and the bound (`run#theWorkerPromptFitsItsBudget`): a prompt that
   grew is paid at every turn of every item, which is the one cost this loop cannot leave to a reader's eye (issue
-  #1082).
+  #1082). The file weighed is the one the child is handed, measured after everything the run appends to it: the
+  rework round's refusal is appended before the check, and it carries the report's `BLOCKING:` lines and the report's
+  own path rather than the whole report, so the bound fires on the largest prompt the run composes and the prose is
+  read at that path instead of re-sent every turn (`run#theReworkPromptIsTheFileTheChildIsHanded`, issue #1088).
 
 ## 2b. Liveness guard and shell recipes
 

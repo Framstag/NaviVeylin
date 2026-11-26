@@ -2502,7 +2502,12 @@ ${timeout_claim:-the recorded context bound}${continuation_phases:+ · the phase
       # FAIL: the same change goes back to a new worker process with the reviewer's findings. Its session runs the
       # gate itself (`gate_step_text off`): the round that refused it came *after* a gate, so there is nothing left to
       # read before one, and the round its repair buys is the next review round.
-      findings=$(cat "$reviewer_report")
+      #
+      # What the append carries is the findings and not the report (issue #1088): the `BLOCKING:` lines are the finding
+      # — the vocabulary a round after a refusal is owed by (#1085) — and each names the path or the line its refusal is
+      # about, so the report's prose is not re-sent with every turn of the rework session. The report stays one
+      # `ctx_read` away at the path printed beside them, so a finding the summary leaves out is read and not lost.
+      findings=$(blocking_finding_lines "$reviewer_report")
       render_prompt "$LOOP_DIR/prompts/worker.md" "$item_dir/worker-prompt-round2.md" \
         "GATE_STEP=$(gate_step_text off)" \
         "WORKER_REFERENCE=$item_dir/worker-reference.md" \
@@ -2512,9 +2517,12 @@ ${timeout_claim:-the recorded context bound}${continuation_phases:+ · the phase
         "CLASS=$class" "PROPOSE_CLASS=$propose_class"
       # The reference is the item's one copy, rendered beside the item's own prompt above: the rework round is the
       # same item reading the same rules, so it is handed that file rather than a second rendering of it (issue #1082).
+      # The bound weighs the file the child is handed, so it is measured after the append (issue #1088): measured
+      # before it, the largest prompt the run composes — the rework prompt and the refusal it carries — was the one
+      # the bound could never fire on.
+      printf '\n## The reviewer refused this change; change exactly these things\n\n%s\n\n## The report those findings were read from\n\n%s\n' \
+        "$findings" "$reviewer_report" >> "$item_dir/worker-prompt-round2.md"
       worker_prompt_bound_check "$item_dir/worker-prompt-round2.md" worker-round2
-      printf '\n## The reviewer refused this change; change exactly these things\n\n%s\n' "$findings" \
-        >> "$item_dir/worker-prompt-round2.md"
       run_child "$item_dir/worker-prompt-round2.md" "$item_dir/worker-report-round2.md"
       round2_exit=$?
       # The rework round is split like the item's first one (issue #744): the repair a refusal buys ends at its

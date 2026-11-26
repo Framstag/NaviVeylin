@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/sensors/tests/sensor-mutations.sh --list" tests="0" failures="0" errors="0" time="1" run="2402759">
+  <system-out>4.12 sensors#aMultipliedKindSetIsListed — a run files at most the bound its row carries, and the rest leaves as one summary (tools/sensors/run.sh) 5.4 workflow#theFindingsRecordIsFetchedBeforeItsRowsRun — the findings record is fetched from its own artifact (.github/workflows/sensors.yml) 5.5 workflow#theFindingsReadinessIsReportedApart — a record that is not there is reported as not-ready, not as</system-out>
+</testsuite>

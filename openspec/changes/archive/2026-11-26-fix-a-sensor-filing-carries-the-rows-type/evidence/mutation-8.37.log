@@ -1,0 +1,3 @@
+MUTATION 8.37: run#aFilingCarriesTheRowsType red under the mutation, green after the restore — the filing carries the type its row declares (issue #1070)
+
+sensor-mutations: 1 behaved, 0 did not

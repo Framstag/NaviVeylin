@@ -591,6 +591,11 @@ by it: what changed is what a round is handed, not how long it may look. `prompt
 holds both halves — the round under the cap carries no line about one, and the round over it hands the head and names
 what the cut left out, in the prompt, in the index and in the state the report prints from.
 
+A findings file the run writes beside an item is not a round's input, and its quote is bounded by the same key:
+`review_findings_part` cuts it at the line boundary the cap falls on and names in the `[LOOP-CUT: …]` marker how many
+of the report's finding lines the quote carries, so a cap that lands on a newline never drops the whole line it ends
+and a cap inside a line never hands the fragment it left (issue #1046).
+
 **A round a bound ended is restarted in the same run, not handed forward** (issue #918). `LOOP_REVIEW_RESTART_MAX`
 (`1` in `tools/loop/loop.conf`, `0` or absent = no restart) is how many times one round may be restarted after a bound
 of the run's own ended it; the restart is a fresh session on the same bounded input, and it is handed what the cut

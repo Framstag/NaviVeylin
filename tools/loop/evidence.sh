@@ -754,16 +754,26 @@ review_restart_scope() { # <the cut report> <its LOOP-TIMEOUT line> <which round
 }
 
 # One reading's findings, quoted to a part's cap the way every part a round is handed is bounded. A findings file is
-# never a round's input, so the marker names the report the whole of them stands in rather than a cut index.
+# never a round's input, so the marker names the report the whole of them stands in rather than a cut index — and the
+# count of the report's finding lines the quote carries, because a quote that lost a line and a quote that cut one in
+# half read the same to a person who cannot see the report (issue #1046).
 review_findings_part() { # <cap> <report> <findings> → the section's body
-  local cap="$1" report="$2" findings="$3"
+  local cap="$1" report="$2" findings="$3" kept total
   if [ -z "$findings" ]; then
     printf '(it wrote no `BLOCKING:` or `NOTE:` line down)\n'
     return 0
   fi
+  total=$(printf '%s\n' "$findings" | wc -l | tr -d ' \n')
   if [ "$cap" -gt 0 ] && [ "$(printf '%s\n' "$findings" | wc -c | tr -d ' \n')" -gt "$cap" ]; then
-    printf '%s\n' "$findings" | head -c "$cap" | sed '$d'
-    printf '[LOOP-CUT: the findings above are quoted to %s bytes; the whole of them stands at %s]\n' "$cap" "$report"
+    # `head -c` keeps a partial line at the cap, and the newlines inside the bytes it kept are the lines that ended
+    # before the cap: a cap that lands on a boundary ends a whole line, which is kept, and one inside a line leaves
+    # only a fragment, which `head -n` drops rather than hand as a finding line (issue #1046).
+    kept=$(printf '%s\n' "$findings" | head -c "$cap" | tr -cd '\n' | wc -c | tr -d ' \n')
+    if [ "$kept" -gt 0 ]; then
+      printf '%s\n' "$findings" | head -n "$kept"
+    fi
+    printf '[LOOP-CUT: the findings above are quoted to %s bytes — %s of the %s finding lines the report holds; the whole of them stands at %s]\n' \
+      "$cap" "$kept" "$total" "$report"
   else
     printf '%s\n' "$findings"
   fi

@@ -99,6 +99,7 @@ LOOP_SHELL_CASES=(
   'prescreen#anUnansweredTrackerIsNotAnEmptyQueue'
   'worktree#seedsAllFourInputs'
   'evidence#scansWhatTheProfileNames'
+  'evidence#aCutAtTheCapKeepsEveryWholeLine'
   'check#aRouteSectionResolvesAgainstItsDocument'
   'worktree#checksOutTheSubmoduleTheLoopConfigNames'
   'worktree#checksOutTheNewPinWhenItReusesTheWorktree'
@@ -952,6 +953,7 @@ loop_run_shell_case() {
     'prescreen#anUnansweredTrackerIsNotAnEmptyQueue') fn=case_prescreen_anUnansweredTrackerIsNotAnEmptyQueue ;;
     'worktree#seedsAllFourInputs') fn=case_worktree_seedsAllFourInputs ;;
     'evidence#scansWhatTheProfileNames') fn=case_evidence_scansWhatTheProfileNames ;;
+    'evidence#aCutAtTheCapKeepsEveryWholeLine') fn=case_evidence_aCutAtTheCapKeepsEveryWholeLine ;;
     'check#aRouteSectionResolvesAgainstItsDocument') fn=case_check_aRouteSectionResolvesAgainstItsDocument ;;
     'worktree#checksOutTheSubmoduleTheLoopConfigNames') fn=case_worktree_checksOutTheSubmoduleTheLoopConfigNames ;;
     'worktree#checksOutTheNewPinWhenItReusesTheWorktree') fn=case_worktree_checksOutTheNewPinWhenItReusesTheWorktree ;;
@@ -4061,6 +4063,46 @@ case_evidence_scansWhatTheProfileNames() {
   printf 'LOOP_EVIDENCE_SCAN_PATHS=""\nLOOP_EVIDENCE_XML_DIR="build/test-results"\n' > "$p/tools/loop/loop.conf"
   out=$( cd "$p" && bash "$LOOP_ENGINE/evidence-check.sh" openspec/changes/demo --root . --table table.md 2>&1 ); code=$?
   assert_eq 2 "$code" "a configuration that names no scan root is refused instead of scanning nothing: $out"
+}
+
+# A part a round is handed is cut by `head -c`, which keeps a partial line at the cap and nothing beside it says
+# which of the two cases the bytes ended in. The findings quote then dropped its last retained line **whatever it
+# held**, so a cap that landed on a newline lost a whole `BLOCKING:`/`NOTE:` line of the reading while the
+# `[LOOP-CUT: …]` marker under it accounted for nothing, and a cap inside a line left a headless fragment of the next
+# finding that a reader could not tell from a short line (issue #1046). The cut is taken at a line boundary now, and
+# the marker says how many of the report's finding lines the quote carries.
+case_evidence_aCutAtTheCapKeepsEveryWholeLine() {
+  # files: tools/loop/ tools/loop/tests/fixtures/ tools/pi-child-events.sh tools/tooling.json
+  local p probe findings out
+  p=$(new_project)
+  findings=$(printf 'BLOCKING: one\nNOTE: two\nBLOCKING: three')
+  # The cut is driven through `tools/loop/evidence.sh` itself: a copy of the cutter would prove nothing about the
+  # cutter, so the case writes the throwaway project a script that sources the engine and calls it.
+  probe="$p/findings-cut.sh"
+  cat > "$probe" <<EOF
+#!/usr/bin/env bash
+set -uo pipefail
+here="\$LOOP_ENGINE"
+source "\$here/evidence.sh"
+review_findings_part "\$1" "\$2" "\$3"
+EOF
+
+  # A cap that lands on the boundary ends the second finding line exactly: that line is whole, so it is kept, and the
+  # finding after it is the one the marker accounts for.
+  out=$( bash "$probe" 24 pre-gate-review.md "$findings" )
+  assert_contains "$out" "BLOCKING: one" "the first whole line inside the cap is quoted"
+  assert_contains "$out" "NOTE: two" "and the whole line the cap ends — the line a cap on a boundary dropped"
+  assert_eq 0 "$(printf '%s\n' "$out" | grep -c 'BLOCKING: three' || true)" \
+    "the finding past the cap is left to the marker, which accounts for it"
+  assert_contains "$out" "2 of the 3" "the marker says how many of the report's finding lines the quote carries"
+
+  # A cap inside a line keeps every whole line before it and hands no fragment of the line it cut.
+  out=$( bash "$probe" 18 pre-gate-review.md "$findings" )
+  assert_contains "$out" "BLOCKING: one" "a cap inside a line keeps the whole lines before it"
+  assert_eq 0 "$(printf '%s\n' "$out" | grep -c '^NOT$' || true)" \
+    "the fragment the cap left is not handed as a line of the reading"
+  assert_contains "$out" "1 of the 3" "and the marker counts the one finding line the quote carries"
+  assert_contains "$out" "pre-gate-review.md" "the marker names the report the whole of the findings stands in"
 }
 
 case_check_aRouteSectionResolvesAgainstItsDocument() {

@@ -1390,6 +1390,12 @@ MUTATIONS=(
   # does not record the reading it replaced.
   '1045.1@-@tools/loop/evidence.sh@run#aRestartQuotesTheRetriedReadingItReplaced@the replaced reading the caller hands in, so the predicate derives it from the restart own name and quotes the attempt before the retry — a reading the restart was never handed — in place of the findings the run paid a session for (issue #1045)@s|^  \[ -n "\$first" \] \|\| return 0$|  first="${report%-restart-retry.md}"; first="${first%-restart.md}.md"|'
   '1045.2@-@tools/loop/run.sh@run#aRetriedRestartQuotesTheReadingItRetried@the reading a retry of a restart replaced, so the retry records the attempt before the restart and the file quotes a reading the retry was never handed while the restart own report is dropped (issue #1045)@0,/^          review_replaced_report="\$reviewer_report"$/s|^          review_replaced_report="\$reviewer_report"$|          :|'
+  # 1046.x — the findings quote is cut at the line boundary the part cap falls on (issue #1046): `head -c` keeps a
+  # partial line at the cap and `sed '$d'` then dropped the last retained line **whatever it held**, so a cap that
+  # landed on a newline lost a whole `BLOCKING:`/`NOTE:` line of the reading while the `[LOOP-CUT: …]` marker under
+  # it accounted for nothing. The record drops the line the cap ends as well — the unconditional last-line drop this
+  # item removed — and `evidence#aCutAtTheCapKeepsEveryWholeLine` is the case that must notice.
+  '1046.1@-@tools/loop/evidence.sh@evidence#aCutAtTheCapKeepsEveryWholeLine@the line the cap ends, so the quote drops the last finding line it kept whatever byte the cap stopped on — the unconditional last-line drop this item removed (issue #1046)@s|head -n "\$kept"$|head -n "$((kept - 1))"|'
   # 1085.x — a refusal buys the round after it only when it **named** a finding (issue #1085): the count is the
   # reviewer's claim about its own grading and the `BLOCKING:` line is the finding a worker pass can act on. Every
   # `VERDICT: FAIL` report in the archive carries one, at line start or wrapped in the emphasis #1042's round

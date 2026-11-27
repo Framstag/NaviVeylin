@@ -450,10 +450,18 @@
     <string name="settings_section_speech">Sprache</string>
     <string name="settings_section_announcements">Hinweise</string>
     <string name="settings_section_map_presentation">Darstellung</string>
+    <string name="settings_section_interaction">Bedienung</string>
     <!-- Die Darstellungszeilen der Themenseite "Karte": der Kartenstil und die Symbol-statt-Icon-
          Vorliebe, die festlegen, was der aktive Stil zeichnet. -->
     <string name="settings_help_map_style">Jeder mitgelieferte Kartenstil, sofort auf die Karte angewendet.</string>
     <string name="settings_help_poi_symbols">Zeichnet das Symbol eines Eintrags statt seines Icons, wo der Stil beides mitbringt.</string>
+    <!-- Die übrigen Zeilen der Themenseite "Karte": die beiden Werte, die das Auto mitliest (Dunkelmodus,
+         Rendering), die Lichtsensor-Empfindlichkeit des Telefons und seine beiden Kartenbedienwerte. -->
+    <string name="settings_help_dark_mode">An, aus oder dem Lichtsensor des Geräts folgend. Android Auto liest denselben Wert.</string>
+    <string name="settings_help_ambient_sensitivity">Wie viel Licht die Karte als hell wertet; gilt nur, solange der Dunkelmodus dem Sensor folgt.</string>
+    <string name="settings_help_render_mode">Zeichnet die Karte aus dem Kachel-Cache oder in jedem Bild direkt. Android Auto liest denselben Wert.</string>
+    <string name="settings_help_keep_screen_on">Lässt den Bildschirm des Geräts an, solange die App im Vordergrund ist.</string>
+    <string name="settings_help_long_press">Wie lange ein Finger auf der Karte ruht, bevor die Langdruck-Auswahl aufgeht.</string>
     <!-- Die Hinweiszeilen unter "Hinweise &amp; Sprache": der Schalter des Autos, die Kurz- und
          Langhilfen und die Endpunkte des Schiebereglers. -->
     <string name="settings_voice_guidance_car">Sprachführung (Android Auto)</string>

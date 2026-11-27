@@ -170,13 +170,13 @@ A topic page SHALL render its rows as one scrolling column grouped under section
 - **WHEN** the user opens the Karte topic
 - **THEN** its rows appear under the section titles that own them
 - **AND** the section titles are not tappable
-- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
+- **Case**: `SettingsSurfaceTest#theKartePageGroupsItsRowsUnderSectionTitles`
 
 #### Scenario: An inapplicable section is omitted
 
 - **WHEN** dark mode is not Automatic and the Karte topic is open
 - **THEN** the ambient-light sensitivity row is not shown
-- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
+- **Case**: `SettingsSurfaceTest#anInapplicableRowIsOmitted`
 
 ### Requirement: A finite value set is presented as options, never only by cycling
 
@@ -186,7 +186,7 @@ A row whose setting has a finite set of values SHALL present those values with t
 
 - **WHEN** the dark mode row is displayed
 - **THEN** Off, On and Automatic are offered as a selection list with the current value marked
-- **Case**: none — none of these rows exists on HEAD: the case is written with the surface rows (tasks.md groups 2-5)
+- **Case**: `SettingsSurfaceTest#aChoiceRowNamesItsOptionAndPersistsThePick`
 
 #### Scenario: Map style opens a selection surface
 

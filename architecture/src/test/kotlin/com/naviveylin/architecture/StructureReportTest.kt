@@ -26,7 +26,7 @@ class StructureReportTest {
         assertEquals("every declaration row must be read: ${report.summary()}", 34, report.rows)
         assertEquals(
             "every main and test source file of the three modules must be classified: ${report.summary()}",
-            865,
+            866,
             report.files,
         )
         assertEquals(
@@ -42,7 +42,7 @@ class StructureReportTest {
         )
         assertTrue(
             "the green run must state its four figures: ${report.summary()}",
-            report.summary().contains("rows=34 files=865 exemptions=45 rules=10"),
+            report.summary().contains("rows=34 files=866 exemptions=45 rules=10"),
         )
     }
 

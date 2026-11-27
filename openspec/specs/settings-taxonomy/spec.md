@@ -62,7 +62,7 @@ Every setting row SHALL declare one scope: shared (one stored value that both su
 
 - **WHEN** the car's settings screens are enumerated
 - **THEN** no row for keep-screen-on, long-press delay or the phone's own voice switch is present
-- **Case**: none — none of these rows exists on HEAD: the case is written with the registry and renderer rows (tasks.md groups 1-2)
+- **Case**: `MapTopicTest#thePhoneRowsNeverReachTheCar`
 
 ### Requirement: A surface-specific row is marked, a shared row is not
 

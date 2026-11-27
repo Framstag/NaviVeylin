@@ -23,6 +23,7 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -54,6 +55,7 @@ import com.naviveylin.core.VehicleAnchorPosition
 import com.naviveylin.data.AppSettings
 import com.naviveylin.data.AssetCopier
 import com.naviveylin.data.DarkModeController
+import com.naviveylin.data.DarkModePreference
 import com.naviveylin.data.FavoriteRepository
 import com.naviveylin.data.SearchHistoryRepository
 import com.naviveylin.data.SettingsStorage
@@ -938,6 +940,151 @@ class SettingsSurfaceTest {
             composeRule.onNodeWithTag(SETTINGS_SELECT_OPTION_TAG_PREFIX + anchor.id)
                 .assert(hasText(anchor.label))
         }
+    }
+
+    /**
+     * The "Karte" page draws every row the topic declares, including the five that moved out of the
+     * quick sheet (spec: `settings-surface` — "Every persisted phone setting is editable from the
+     * surface"): each row's label is reachable, a `CHOICE` row lists its options, the long-press row
+     * is the bounded slider the setting documents, and the surface-specific rows carry the phone
+     * mark.
+     */
+    @Test
+    fun theKartePageRendersEveryRowItDeclares() {
+        launchSurface(topic = SettingsTopic.MAP)
+
+        val labels = listOf(
+            R.string.map_style,
+            R.string.prefer_symbol_icons,
+            R.string.dark_mode,
+            R.string.ambient_light_dark_mode,
+            R.string.rendering,
+            R.string.keep_screen_on,
+            R.string.long_press_timeout
+        )
+        for (res in labels) {
+            composeRule.onNodeWithText(label(res)).performScrollTo().assertIsDisplayed()
+        }
+
+        // A CHOICE row lists its options instead of cycling them on tap (design D5).
+        assertEquals(
+            "the dark-mode row offers its three values as options",
+            3,
+            composeRule.onAllNodes(
+                hasAnyAncestor(hasTestTag(SETTINGS_ROW_TAG_PREFIX + "dark-mode")) and isSelectable(),
+                useUnmergedTree = false
+            ).fetchSemanticsNodes().size
+        )
+        assertEquals(
+            "the ambient-sensitivity row offers its four values as options",
+            4,
+            composeRule.onAllNodes(
+                hasAnyAncestor(hasTestTag(SETTINGS_ROW_TAG_PREFIX + "ambient-sensitivity")) and
+                    isSelectable(),
+                useUnmergedTree = false
+            ).fetchSemanticsNodes().size
+        )
+
+        // The long-press row is the slider the setting documents: 250-1000 ms in 50 ms steps, the
+        // stored default 500 ms in force (spec: `map-long-press-timeout`).
+        val slider = composeRule
+            .onNodeWithTag(SETTINGS_SLIDER_TAG_PREFIX + "long-press-timeout")
+            .performScrollTo()
+        slider.assertRangeInfoEquals(
+            ProgressBarRangeInfo(
+                AppSettings.LONG_PRESS_TIMEOUT_DEFAULT_MS.toFloat(),
+                AppSettings.LONG_PRESS_TIMEOUT_MIN_MS.toFloat()..AppSettings.LONG_PRESS_TIMEOUT_MAX_MS.toFloat(),
+                steps = (AppSettings.LONG_PRESS_TIMEOUT_MAX_MS - AppSettings.LONG_PRESS_TIMEOUT_MIN_MS) /
+                    AppSettings.LONG_PRESS_TIMEOUT_STEP_MS - 1
+            )
+        )
+
+        // The four phone rows carry the phone mark and the three shared ones carry none.
+        composeRule.onAllNodes(hasContentDescription(label(R.string.settings_scope_phone)), useUnmergedTree = true)
+            .assertCountEquals(4)
+        composeRule.onAllNodes(hasContentDescription(label(R.string.settings_scope_car)), useUnmergedTree = true)
+            .assertCountEquals(0)
+    }
+
+    /**
+     * A `CHOICE` row names the option in force rather than the key the settings file stores, and a
+     * pick persists exactly that option's key (spec: `settings-surface` — "A finite value set is
+     * presented as options, never only by cycling").
+     */
+    @Test
+    fun aChoiceRowNamesItsOptionAndPersistsThePick() {
+        launchSurface(topic = SettingsTopic.MAP)
+
+        // The stored default AUTOMATIC is named by its label and the key itself is shown nowhere:
+        // the value line resolves the option instead of echoing what the settings file stores.
+        composeRule.onAllNodes(hasText(DarkModePreference.AUTOMATIC.name)).assertCountEquals(0)
+        composeRule.onAllNodes(
+            hasText(label(R.string.automatic)) and
+                hasAnyAncestor(hasTestTag(SETTINGS_ROW_TAG_PREFIX + "dark-mode"))
+        ).assertCountEquals(2)
+
+        // Ambient light also offers "Off", so the dark-mode row's own option is the one clicked.
+        composeRule.onNode(
+            hasTestTag(SETTINGS_CHOICE_OPTION_TAG_PREFIX + DarkModePreference.OFF.name) and
+                hasAnyAncestor(hasTestTag(SETTINGS_ROW_TAG_PREFIX + "dark-mode"))
+        ).performScrollTo().performClick()
+        awaitStored { settings -> settings.darkMode == DarkModePreference.OFF }
+        composeRule.waitForIdle()
+
+        // The pick is the value in force: the row names it, and it is the marked option.
+        composeRule.onNode(
+            hasTestTag(SETTINGS_CHOICE_OPTION_TAG_PREFIX + DarkModePreference.OFF.name) and
+                hasAnyAncestor(hasTestTag(SETTINGS_ROW_TAG_PREFIX + "dark-mode"))
+        ).assertIsSelected()
+        composeRule.onAllNodes(
+            hasText(label(R.string.automatic)) and
+                hasAnyAncestor(hasTestTag(SETTINGS_ROW_TAG_PREFIX + "dark-mode"))
+        ).assertCountEquals(1)
+        composeRule.onAllNodes(
+            hasText(label(R.string.off)) and
+                hasAnyAncestor(hasTestTag(SETTINGS_ROW_TAG_PREFIX + "dark-mode"))
+        ).assertCountEquals(2)
+    }
+
+    /**
+     * A topic page groups its rows under the section titles that own them, and a title is a heading
+     * rather than a control (spec: `settings-surface` — "A topic page groups its rows under section
+     * titles").
+     */
+    @Test
+    fun theKartePageGroupsItsRowsUnderSectionTitles() {
+        launchSurface(topic = SettingsTopic.MAP)
+
+        composeRule.onNodeWithText(label(R.string.settings_section_map_presentation))
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeRule.onNodeWithText(label(R.string.settings_section_interaction))
+            .performScrollTo()
+            .assertIsDisplayed()
+            .assertHasNoClickAction()
+    }
+
+    /**
+     * The ambient-light row applies only while dark mode is Automatic, so the choice that makes it
+     * inapplicable drops it instead of greying it (spec: `settings-surface` — "An inapplicable
+     * section is omitted").
+     */
+    @Test
+    fun anInapplicableRowIsOmitted() {
+        launchSurface(topic = SettingsTopic.MAP)
+
+        composeRule.onNodeWithText(label(R.string.ambient_light_dark_mode))
+            .performScrollTo()
+            .assertIsDisplayed()
+
+        composeRule.onNode(
+            hasTestTag(SETTINGS_CHOICE_OPTION_TAG_PREFIX + DarkModePreference.ON.name) and
+                hasAnyAncestor(hasTestTag(SETTINGS_ROW_TAG_PREFIX + "dark-mode"))
+        ).performScrollTo().performClick()
+        awaitStored { settings -> settings.darkMode == DarkModePreference.ON }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText(label(R.string.ambient_light_dark_mode)).assertDoesNotExist()
     }
 
     // ---- fixtures ----

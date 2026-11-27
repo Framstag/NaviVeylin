@@ -79,6 +79,9 @@ internal const val SETTINGS_SELECT_TAG = "settings-select"
 /** Test handle prefix on one option of a `SELECT` row, so a case points at an option, not its text. */
 internal const val SETTINGS_SELECT_OPTION_TAG_PREFIX = "settings-select-option-"
 
+/** Test handle prefix on one option of a `CHOICE` row, so a case points at an option, not its text. */
+internal const val SETTINGS_CHOICE_OPTION_TAG_PREFIX = "settings-choice-option-"
+
 /**
  * The settings surface, hosted on whatever page is showing (design D2, D3; spec: `settings-surface`).
  *
@@ -457,10 +460,15 @@ private fun SettingRow(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onWrite(row, choice.key) },
+                        .selectable(
+                            selected = value == choice.key,
+                            role = Role.RadioButton,
+                            onClick = { onWrite(row, choice.key) }
+                        )
+                        .testTag(SETTINGS_CHOICE_OPTION_TAG_PREFIX + choice.key),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(selected = value == choice.key, onClick = { onWrite(row, choice.key) })
+                    RadioButton(selected = value == choice.key, onClick = null)
                     Text(choiceLabel(choice), style = MaterialTheme.typography.bodyMedium)
                 }
             }
@@ -576,6 +584,15 @@ private fun valueText(row: SettingSpec, value: String): String {
     // anchor is shown as inheriting").
     if (row.control == SettingControl.SELECT && value.isEmpty()) {
         return stringResource(R.string.settings_anchor_inherit)
+    }
+    // A `CHOICE` row's stored value is the option's key, so the line names the option the way the
+    // radio list below it does rather than showing the key the settings file holds (spec:
+    // `settings-surface` — "A finite value set is presented as options, never only by cycling").
+    if (row.control == SettingControl.CHOICE) {
+        val chosen = (row.payload as? SettingControlPayload.Choice)
+            ?.choices
+            ?.firstOrNull { choice -> choice.key == value }
+        if (chosen != null) return choiceLabel(chosen)
     }
     val format = row.valueFormatRes ?: return value
     val number = value.toIntOrNull() ?: return value

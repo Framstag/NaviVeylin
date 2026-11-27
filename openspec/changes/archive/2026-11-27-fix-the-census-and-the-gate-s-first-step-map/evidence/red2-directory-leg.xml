@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop/tests/loop-selftest.sh --case census#theCensusIsANumber (red, base 0e278789, 2026-11-27T16:49:13Z)" tests="1" failures="1" errors="0">
+  <system-out>FAIL census#theCensusIsANumber
+  the census refused a directory of case files:
+census: no cases at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.CmpUS9/cases/0/tree/case.gnLeOt/cases
+loop-selftest: 1 of 1 cases failed</system-out>
+</testsuite>

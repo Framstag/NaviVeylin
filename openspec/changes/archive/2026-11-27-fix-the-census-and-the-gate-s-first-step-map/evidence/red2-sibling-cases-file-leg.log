@@ -1,0 +1,49 @@
+gate#aPathACheckReadsOwesThatStepsCommandSet|   a sibling cases file owes the declaration's own case first: tools/loop/tests/loop-selftest.sh --from-git b6552043b6caf0d21e7e7ac4a0f9c270a9eca0dc
+gate#aPathACheckReadsOwesThatStepsCommandSet| bash tools/loop/tests/loop-mutations.sh --check
+gate#aPathACheckReadsOwesThatStepsCommandSet| tools/check-portability.sh
+gate#aPathACheckReadsOwesThatStepsCommandSet| tools/tests/check-portability-selftest.sh
+gate#aPathACheckReadsOwesThatStepsCommandSet| tools/tests/mutate-selftest.sh
+gate#aPathACheckReadsOwesThatStepsCommandSet| tools/mutate.sh --mutations tools/tests/portability-mutations.json --list
+gate#aPathACheckReadsOwesThatStepsCommandSet| tools/issues/tests/issue-tooling-selftest.sh
+gate#aPathACheckReadsOwesThatStepsCommandSet| tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list
+gate#aPathACheckReadsOwesThatStepsCommandSet| tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list
+gate#aPathACheckReadsOwesThatStepsCommandSet| tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list
+gate#aPathACheckReadsOwesThatStepsCommandSet| tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list
+gate#aPathACheckReadsOwesThatStepsCommandSet| tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list: 'tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach' not found in: tools/loop/tests/loop-selftest.sh --from-git b6552043b6caf0d21e7e7ac4a0f9c270a9eca0dc
+gate#aPathACheckReadsOwesThatStepsCommandSet| bash tools/loop/tests/loop-mutations.sh --check
+gate#aPathACheckReadsOwesThatStepsCommandSet| tools/check-portability.sh
+gate#aPathACheckReadsOwesThatStepsCommandSet| tools/tests/check-portability-selftest.sh
+gate#aPathACheckReadsOwesThatStepsCommandSet| tools/tests/mutate-selftest.sh
+gate#aPathACheckReadsOwesThatStepsCommandSet| tools/mutate.sh --mutations tools/tests/portability-mutations.json --list
+gate#aPathACheckReadsOwesThatStepsCommandSet| tools/issues/tests/issue-tooling-selftest.sh
+gate#aPathACheckReadsOwesThatStepsCommandSet| tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list
+gate#aPathACheckReadsOwesThatStepsCommandSet| tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list
+gate#aPathACheckReadsOwesThatStepsCommandSet| tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list
+gate#aPathACheckReadsOwesThatStepsCommandSet| tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list
+gate#aPathACheckReadsOwesThatStepsCommandSet| tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
+--- gate#aPathACheckReadsOwesThatStepsCommandSet[0] (exit 1)
+  a sibling cases file owes the declaration's own case first: tools/loop/tests/loop-selftest.sh --from-git b6552043b6caf0d21e7e7ac4a0f9c270a9eca0dc
+bash tools/loop/tests/loop-mutations.sh --check
+tools/check-portability.sh
+tools/tests/check-portability-selftest.sh
+tools/tests/mutate-selftest.sh
+tools/mutate.sh --mutations tools/tests/portability-mutations.json --list
+tools/issues/tests/issue-tooling-selftest.sh
+tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list
+tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list
+tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list
+tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list
+tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list: 'tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach' not found in: tools/loop/tests/loop-selftest.sh --from-git b6552043b6caf0d21e7e7ac4a0f9c270a9eca0dc
+bash tools/loop/tests/loop-mutations.sh --check
+tools/check-portability.sh
+tools/tests/check-portability-selftest.sh
+tools/tests/mutate-selftest.sh
+tools/mutate.sh --mutations tools/tests/portability-mutations.json --list
+tools/issues/tests/issue-tooling-selftest.sh
+tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list
+tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list
+tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list
+tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list
+tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
+FAIL gate#aPathACheckReadsOwesThatStepsCommandSet
+loop-selftest: 1 of 1 cases failed

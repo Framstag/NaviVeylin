@@ -1,0 +1,5 @@
+driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns|   a path below a core directory is not refused: loop-selftest: the file set names no case of the 4 declared — a run that executes nothing would report success, so this is a refusal (--case-files shows what each case declares): expected '0', got '2'
+--- driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns[0] (exit 1)
+  a path below a core directory is not refused: loop-selftest: the file set names no case of the 4 declared — a run that executes nothing would report success, so this is a refusal (--case-files shows what each case declares): expected '0', got '2'
+FAIL driver#aFileFilterRunsOnlyTheCasesTheDeltaOwns
+loop-selftest: 1 of 1 cases failed

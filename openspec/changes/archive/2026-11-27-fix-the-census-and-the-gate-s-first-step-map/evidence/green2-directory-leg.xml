@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop/tests/loop-selftest.sh --case census#theCensusIsANumber (green on the change, 2026-11-27T16:56:34Z)" tests="1" failures="0" errors="0">
+  <system-out>PASS census#theCensusIsANumber
+loop-selftest: 1 of 1 cases passed</system-out>
+</testsuite>

@@ -1,0 +1,7 @@
+census#theCensusIsANumber| census: no cases at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.CmpUS9/cases/0/tree/case.gnLeOt/cases
+census#theCensusIsANumber|   the census refused a directory of case files: 
+--- census#theCensusIsANumber[0] (exit 1)
+census: no cases at /home/tim/projects/NaviVeylin/.pi/worktrees/loop/.pi/tmp/loop-selftest.CmpUS9/cases/0/tree/case.gnLeOt/cases
+  the census refused a directory of case files: 
+FAIL census#theCensusIsANumber
+loop-selftest: 1 of 1 cases failed

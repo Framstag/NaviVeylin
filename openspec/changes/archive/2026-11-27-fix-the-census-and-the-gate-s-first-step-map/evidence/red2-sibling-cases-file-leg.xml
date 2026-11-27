@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop/tests/loop-selftest.sh --case gate#aPathACheckReadsOwesThatStepsCommandSet (red, base 0e278789, 2026-11-27T16:49:13Z)" tests="1" failures="1" errors="0">
+  <system-out>FAIL gate#aPathACheckReadsOwesThatStepsCommandSet
+  a sibling cases file owes the declaration's own case first: tools/loop/tests/loop-selftest.sh --from-git b6552043b6caf0d21e7e7ac4a0f9c270a9eca0dc
+bash tools/loop/tests/loop-mutations.sh --check
+... (the plan's steps, none of them the declaration's case)
+loop-selftest: 1 of 1 cases failed</system-out>
+</testsuite>

@@ -1,0 +1,25 @@
+LOOP-MEASURE-PROFILE /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf
+LOOP-MEASURE base=5e9b8da429372c6724de305783cd3247428dc723 paths=4 insertions=52 deletions=4
+LOOP-MEASURE-PATH tools/issues/check-metadata.sh
+LOOP-MEASURE-PATH tools/issues/lib.sh
+LOOP-MEASURE-PATH tools/issues/tests/issue-tooling-cases.sh
+LOOP-MEASURE-PATH tools/sensors/lib.sh
+LOOP-MEASURE-CHECK tools/issues/tests/issue-tooling-selftest.sh
+LOOP-MEASURE-CHECK tools/issues/check-metadata.sh
+LOOP-MEASURE-CHECK tools/issues/tests/metadata-mutations.sh --list
+LOOP-MEASURE-CHECK tools/sensors/tests/sensor-selftest.sh
+LOOP-MEASURE-CHECK tools/sensors/tests/sensor-mutations.sh --list
+LOOP-MEASURE-CHECK tools/check-portability.sh
+LOOP-MEASURE-CHECK tools/tests/check-portability-selftest.sh
+LOOP-MEASURE-CHECK tools/tests/mutate-selftest.sh
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/tests/portability-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list
+LOOP-MEASURE-CHECK tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list
+LOOP-MEASURE-SUITE cases=579 cmd=tools/loop/tests/loop-selftest.sh --list
+LOOP-MEASURE-GATE seconds=- reason=no tally under the gate's directory carries a time — the gate of this tree has not run
+LOOP-MEASURE-CHANGE fix-the-live-read-covers-the-whole-tracker scenarios=1 cases=1 unnamed=0
+LOOP-MEASURE-SURFACE surface: 1 case added, 0 rewritten, 0 fixtures realigned — the fixed bound sat on 4 engine sites
+LOOP-MEASURE-END

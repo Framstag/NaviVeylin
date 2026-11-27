@@ -1,0 +1,6 @@
+# red on HEAD (base 5e9b8da4): tools/issues/check-metadata.sh:150 still asks for a fixed window
+$ bash tools/issues/tests/issue-tooling-selftest.sh --case 'metadata#theLiveReadDoesNotTruncateTheTracker'
+  the drift outside a 400-item window is reported: check-metadata: 400 issue(s) checked · 0 violation(s) · 0 untyped: expected '1', got '0'
+FAIL metadata#theLiveReadDoesNotTruncateTheTracker
+exit=1
+# taken 2026-11-27T11:46:08Z

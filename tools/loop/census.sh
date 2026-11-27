@@ -11,7 +11,10 @@
 # cites in the engine's form — `issue #123`, parenthesised or not. A bare `#123` in prose is deliberately not a
 # patron: the engine's citations carry the word `issue`.
 #
-# Usage: census.sh [--json] [--engine <file>] [--cases <file>]
+# Usage: census.sh [--json] [--engine <file>] [--cases <file|dir>]
+#
+# `--cases` names the suite's case text: a file, or a directory read as every `*.sh` file directly below it, so a
+# suite split into several cases files is counted as one set rather than as whichever file it was pointed at.
 # Exit: 0 the census was printed (including a tracker it could not read); 2 usage.
 set -uo pipefail
 
@@ -27,7 +30,7 @@ while [ $# -gt 0 ]; do
     --engine) [ $# -ge 2 ] || { printf 'census: --engine needs a value\n' >&2; exit 2; }; engine="$2"; shift 2 ;;
     --cases) [ $# -ge 2 ] || { printf 'census: --cases needs a value\n' >&2; exit 2; }; cases_file="$2"; shift 2 ;;
     -h|--help)
-      sed -n '2,15p' "$0"
+      sed -n '2,17p' "$0"
       exit 0
       ;;
     *) printf 'census: unknown argument %s\n' "$1" >&2; exit 2 ;;
@@ -35,7 +38,22 @@ while [ $# -gt 0 ]; do
 done
 
 [ -f "$engine" ] || { printf 'census: no engine at %s\n' "$engine" >&2; exit 2; }
-[ -f "$cases_file" ] || { printf 'census: no cases at %s\n' "$cases_file" >&2; exit 2; }
+
+# The case set, resolved once: a directory is every `*.sh` file directly below it, a file is itself. A directory
+# holding none is refused rather than read as "no case carries this phrase", and an argument that is neither is a
+# usage refusal naming it — the two answers the one-path reader could not give (issue #1104).
+cases_files=()
+if [ -d "$cases_file" ]; then
+  for f in "$cases_file"/*.sh; do
+    [ -f "$f" ] || continue
+    cases_files[${#cases_files[@]}]="$f"
+  done
+  [ "${#cases_files[@]}" -gt 0 ] || { printf 'census: no case file under %s\n' "$cases_file" >&2; exit 2; }
+elif [ -f "$cases_file" ]; then
+  cases_files[0]="$cases_file"
+else
+  printf 'census: no cases at %s\n' "$cases_file" >&2; exit 2
+fi
 
 # The refusal mechanisms a guard is made of. Word boundaries keep `blocked` out; a full-line comment is not a
 # site (the comments are where the patron is written, not where the guard stands).
@@ -117,8 +135,6 @@ if [ -n "$cited_list" ]; then
   fi
 fi
 
-case_text=$(cat "$cases_file")
-
 entry_json() { # entry_json <line> <phrase> <comma-separated patrons>
   local issues_json
   issues_json=$(printf '%s' "$3" | awk -F, 'NF { printf "["; for (i=1;i<=NF;i++) printf "%s%s", (i>1?",":""), $i; printf "]" }')
@@ -147,7 +163,7 @@ for idx in "${!g_line[@]}"; do
   fi
 
   nocase=0
-  if [ -n "$phrase" ] && ! grep -Fq -- "$phrase" "$cases_file"; then
+  if [ -n "$phrase" ] && ! grep -Fq -- "$phrase" "${cases_files[@]}"; then
     nocase=1
   fi
   nopatron=0

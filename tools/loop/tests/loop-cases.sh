@@ -609,9 +609,11 @@ loop_shell_cases() {
 
 # The files a delta must touch for the *whole* case set to be owed, whatever the cases declare. Every engine script
 # sources `lib.sh` and the profile, every case is dispatched by this file and run by the driver, so a delta to one of
-# them is owed everything: the declaration narrows a script's own cases, never the suite's own machinery.
+# them is owed everything: the declaration narrows a script's own cases, never the suite's own machinery. A core token
+# ending in `/` is the directory it names and owns the paths below it, which is how a cases file a split puts beside
+# the one the suite reads today is owed the whole set too (issue #1104).
 loop_case_core_files() {
-  printf '%s\n' 'tools/loop/lib.sh tools/loop/loop.conf tools/loop/tests/loop-cases.sh tools/loop/tests/loop-selftest.sh'
+  printf '%s\n' 'tools/loop/lib.sh tools/loop/loop.conf tools/loop/tests/loop-cases.sh tools/loop/tests/cases/ tools/loop/tests/loop-selftest.sh'
 }
 
 # The engine paths a case inherits by calling one of this file's helpers — `run_worktree` starts `worktree.sh`,
@@ -6580,6 +6582,18 @@ case_gate_aPathACheckReadsOwesThatStepsCommandSet() {
   plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
   assert_not_contains "$plan" "tools/check-case-names.sh" \
     "a spec delta owes the spec checks that read it and not the case-name step: $plan"
+
+  # 7. A cases file **beside** the one the suite reads today (issue #1104). The first-step row is keyed on the exact
+  #    path, so a delta that writes a `# files:` declaration into a sibling cases file owed no first step and was
+  #    refused only by the whole suite minutes in — the cost the row was added to remove (issue #792).
+  mkdir -p "$p/tools/loop/tests/cases"
+  printf '#!/usr/bin/env bash\n# a cases file beside the one the suite reads today\n' > "$p/tools/loop/tests/cases/run.sh"
+  git -C "$p" add -A >/dev/null 2>&1 && git -C "$p" commit -qm 'a sibling cases file' >/dev/null 2>&1 \
+    || fail "could not commit the change in the throwaway repository"
+  base=$(git -C "$p" rev-parse HEAD~1)
+  plan=$( cd "$p" && LOOP_CONF="$conf" bash "$LOOP_ENGINE/gate.sh" --plan --base "$base" 2>&1 )
+  assert_contains "$plan" "tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach" \
+    "a sibling cases file owes the declaration's own case first: $plan"
   return 0
 }
 
@@ -19690,6 +19704,30 @@ case_stub_ownsNothing() {
 }
 loop_run_shell_case() { "case_${1%%#*}_${1#*#}"; }'
 
+# The same four stub cases, with the core-file list naming a **directory** instead of one cases file (issue #1104):
+# a split puts the suite's cases files beside one another, so the set's core side is the directory they live in.
+STUB_CORE_DIR_CASES='LOOP_SHELL_CASES=("stub#ownsGate" "stub#ownsRun" "stub#ownsFixtureDir" "stub#ownsNothing")
+loop_shell_cases() { printf "%s\n" "${LOOP_SHELL_CASES[@]}"; }
+loop_case_core_files() { printf "%s\n" "tools/loop/lib.sh tools/loop/tests/cases/"; }
+stub_ran() { printf "%s\n" "$1" >> "$STUB_RUN_LOG"; }
+case_stub_ownsGate() {
+  # files: tools/loop/gate.sh
+  stub_ran "stub#ownsGate"
+}
+case_stub_ownsRun() {
+  # files: tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh
+  stub_ran "stub#ownsRun"
+}
+case_stub_ownsFixtureDir() {
+  # files: tools/loop/tests/fixtures/scenarios/
+  stub_ran "stub#ownsFixtureDir"
+}
+case_stub_ownsNothing() {
+  # files: tools/elsewhere.sh
+  stub_ran "stub#ownsNothing"
+}
+loop_run_shell_case() { "case_${1%%#*}_${1#*#}"; }'
+
 # Two stub cases and the helper both of them call, for a delta whose case-file hunk sits inside one case body and one
 # whose hunk sits in the helper beside them (issue #917). The cases file is a core file here, as it is in this
 # project's own profile, so both answers are observable: the whole set a case-file delta owed until the narrowing,
@@ -19735,6 +19773,19 @@ stub#ownsGate" "$ran" "only the cases the delta's files declare ran"
   out=$(LOOP_CONF="$conf" bash "$driver" --list --files tools/loop/run.sh 2>/dev/null)
   assert_eq "stub#ownsRun" "$out" "the list is the file filter's cases and no others"
   assert_eq "" "$(cat "$STUB_RUN_LOG")" "and listing runs none of them"
+
+  # A core token that names a directory owns the paths below it (issue #1104): a split puts the suite's cases files
+  # beside one another, so the set's core side is the directory they live in, and a delta to a file inside it owes
+  # the whole set rather than being refused for naming no declared case.
+  d=$(scratch)
+  out=$(nested_suite "$d" <<< "$STUB_CORE_DIR_CASES") || fail "could not build the nested suite"
+  driver=$(printf '%s\n' "$out" | sed -n 1p)
+  conf=$(printf '%s\n' "$out" | sed -n 2p)
+  : > "$STUB_RUN_LOG"
+  out=$(LOOP_CONF="$conf" bash "$driver" --files tools/loop/tests/cases/run.sh 2>&1); status=$?
+  assert_eq "0" "$status" "a path below a core directory is not refused: $out"
+  assert_eq "4" "$(wc -l < "$STUB_RUN_LOG")" "the whole set ran for a path below a core directory: $out"
+  assert_contains "$out" "selected 4 of 4 cases" "and the selection is the whole set: $out"
   return 0
 }
 
@@ -25099,6 +25150,24 @@ case_census_theCensusIsANumber() {
   assert_eq "1" "$(printf '%s' "$out" | jq -r '.no_patron | length')" "…and the no-patron list"
   assert_eq "1" "$(printf '%s' "$out" | jq -r '.unheld | length')" "…and the pair"
   assert_eq "read" "$(printf '%s' "$out" | jq -r '.patron.state')" "a readable tracker is named as read"
+
+  # The case set is a directory too (issue #1104): the same text split across two files is the same census, where
+  # the one-path reader refuses the argument outright — `--cases` took a file and nothing else, so a suite split into
+  # several cases files was counted by whichever one it was pointed at.
+  dir="$d/cases"
+  mkdir -p "$dir"
+  cat > "$dir/one.sh" <<'SH'
+case_the_open_guard() {
+  grep -Fq "the open patron's guard is held by a case" tools/loop/census.sh
+}
+SH
+  printf '%s\n' '# a cases file of the set that holds no guard phrase' > "$dir/two.sh"
+  out=$(GH_STUB_DIR=$(census_fixture gh-closed) bash "$LOOP_ENGINE/census.sh" \
+    --engine "$(census_fixture engine.sh)" --cases "$dir") \
+    || fail "the census refused a directory of case files: $out"
+  assert_contains "$out" 'guards: 3' "the census over a directory counts the guards it read: $out"
+  assert_contains "$out" 'no-case: 2' "and it holds the one phrase the set carries: $out"
+  assert_contains "$out" 'no-patron: 1' "with the guard no issue put there: $out"
 }
 
 case_census_aClosedPatronWithNoCaseIsCounted() {

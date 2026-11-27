@@ -340,8 +340,9 @@ sensors_file_record() { # <row> <id> → the created issue's number, or empty
   file=$(mktemp) || sensors_die "run: cannot create a temporary file"
   jq -n --arg title "$title" --arg class "$(sensors_row_field "$row" class)" \
         --arg category "$(sensors_row_field "$row" category)" \
-        --arg claim "$claim" --arg fingerprint "$fp" --arg body "$body" --argjson labels "$labels" \
-    '{title: $title, class: $class, category: $category, claim: $claim,
+        --arg claim "$claim" --arg type "$(sensors_row_type "$row")" \
+        --arg fingerprint "$fp" --arg body "$body" --argjson labels "$labels" \
+    '{title: $title, class: $class, category: $category, type: $type, claim: $claim,
       fingerprint: $fingerprint, labels: $labels, body: $body}' > "$file"
   out=$(bash "$SENSORS_ISSUES_DIR/create.sh" --sensor "$id" --finding "$file" 2>&1)
   code=$?

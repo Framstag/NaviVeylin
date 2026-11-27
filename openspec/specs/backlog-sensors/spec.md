@@ -358,8 +358,10 @@ report prints and the one a later measurement is compared against.
 
 An issue filed by a check SHALL carry the kind and area its row declares, the tracker type that kind maps to in
 the registry, and SHALL NOT carry the automation opt-in. A class is this project's vocabulary and a type is the
-tracker account's, so the mapping is the registry's own data and no engine names either side — and the finding a
-check files is where that type reaches the writer, as the tracker's own field rather than as one more label.
+tracker account's, so the mapping is the registry's own data and no engine names either side — and every finding a
+check files is where that type reaches the writer, as the tracker's own field rather than as one more label. An
+issue a check files is any item its run creates, the record a green row files as much as the condition a red one
+files, and each payload site carries the row's type rather than leaving the other to state it.
 
 #### Scenario: The row's classification is used
 
@@ -368,6 +370,13 @@ check files is where that type reaches the writer, as the tracker's own field ra
   field, in the same write as the labels — so no further interpretation is needed before it can be ranked or
   selected
 - **Case**: `run#aFilingCarriesTheRowsType`
+
+#### Scenario: A green row's record carries the row's type
+
+- **WHEN** a clear finding has no condition issue to carry its measurement and the run files the row's record
+- **THEN** the record carries the kind, area and type its row declares, written as the tracker's own field in the
+  same write as its labels, so a record is no less classified than the condition it stands beside
+- **Case**: `run#aRecordIssueCarriesTheRowsType`
 
 #### Scenario: The class derives the type, and the row may override it
 

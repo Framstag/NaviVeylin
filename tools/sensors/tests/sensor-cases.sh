@@ -111,6 +111,7 @@ SENSOR_CASES=(
   'workflow#theFindingsRecordIsFetchedBeforeItsRowsRun'
   'workflow#theFindingsReadinessIsReportedApart'
   'run#aFilingCarriesTheRowsType'
+  'run#aRecordIssueCarriesTheRowsType'
 )
 
 sensor_cases() {
@@ -145,6 +146,7 @@ sensor_run_case() {
     'report#aTrendIsBetweenOneCondition') case_report_aTrendIsBetweenOneCondition ;;
     'run#aFilingSetsTheBaseline') case_run_aFilingSetsTheBaseline ;;
     'run#aFilingCarriesTheRowsType') case_run_aFilingCarriesTheRowsType ;;
+    'run#aRecordIssueCarriesTheRowsType') case_run_aRecordIssueCarriesTheRowsType ;;
     'update#commentPostsExactlyOnce') case_update_commentPostsExactlyOnce ;;
     'update#commentRefusesOnPolicyFailure') case_update_commentRefusesOnPolicyFailure ;;
     'close#sensorScopeRefusesAForeignIssue') case_close_sensorScopeRefusesAForeignIssue ;;
@@ -1210,6 +1212,28 @@ case_run_aFilingCarriesTheRowsType() {
   assert_eq "0" "$status2" "a row with its own type still files: $out2"
   assert_contains "$(cat "$log2")" "--type Feature" "the row's own type is the one its issue carries"
   assert_not_contains "$(cat "$log2")" "--type Bug" "the class's mapping never overrules the row"
+}
+
+# The row's record issue is this file's second payload site (#1071): the item a green row files on its first
+# clear, held on `status` so no selector takes it. `sensors_file_record` assembled the same seven fields as the
+# condition filing and no `type`, so the record arrived untyped after #1070 gave the condition filing one. It is
+# reached by a path no condition filing takes — the created issue's number comes back from the writer's own
+# stdout — so its case is its own rather than an assertion inside `run#aFilingCarriesTheRowsType`.
+case_run_aRecordIssueCarriesTheRowsType() {
+  local dir log findings out status filed
+  dir=$(throwaway_project)
+  log="$dir/calls.log"; : > "$log"
+  issues_fixture "$dir" '[]'
+  findings=$(write_findings "$dir/findings.jsonl" "$(finding clear 42 case alpha)")
+
+  out=$(cd "$dir" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    bash "$SENSORS_ENGINE/run.sh" --only fixture-emit --apply --input "$findings" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the apply run succeeds: $out"
+  assert_eq "1" "$(record_creates "$log")" "the clear files the row's record issue"
+  filed=$(grep -- 'issue create' "$log" | tail -1 | tr -d '\\')
+  assert_contains "$filed" "sensor record: fixture-emit" "the write is the row's record, not a condition"
+  assert_contains "$filed" "--type Bug" "the record carries the type its row declares"
 }
 
 # ----------------------------------------------------------------------------- 3. the three verbs

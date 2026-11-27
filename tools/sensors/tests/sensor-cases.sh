@@ -31,6 +31,7 @@ SENSOR_CASES=(
   'run#errorIsNeverTreatedAsClear'
   'run#noBaselineFileWritten'
   'run#aClearWithNoIssueReachesTheRecord'
+  'run#aRecordIssueCarriesTheRowsType'
   'lib#theRecordIsNotACondition'
   'lib#aRowBoundIsACount'
   'report#printsACountingLinePerRow'
@@ -137,6 +138,7 @@ sensor_run_case() {
     'run#errorIsNeverTreatedAsClear') case_run_errorIsNeverTreatedAsClear ;;
     'run#noBaselineFileWritten') case_run_noBaselineFileWritten ;;
     'run#aClearWithNoIssueReachesTheRecord') case_run_aClearWithNoIssueReachesTheRecord ;;
+    'run#aRecordIssueCarriesTheRowsType') case_run_aRecordIssueCarriesTheRowsType ;;
     'lib#theRecordIsNotACondition') case_lib_theRecordIsNotACondition ;;
     'lib#aRowBoundIsACount') case_lib_aRowBoundIsACount ;;
     'report#printsACountingLinePerRow') case_report_printsACountingLinePerRow ;;
@@ -1005,6 +1007,26 @@ case_lib_theRecordIsNotACondition() {
     sensors_resolve
     sensors_conditions_json "$SENSORS_COND_INPUT"' 2>&1)
   assert_contains "$out" '"condition":{"path":"x"}' "a condition issue is still read as one: $out"
+}
+
+# The record issue a green row files is an item a check files, so it carries the row's type exactly as a condition
+# does: `sensors_file_record` builds the second payload of its own, and it is the one a green row's first clear takes,
+# so the type has to reach the writer there too (issue #1071).
+case_run_aRecordIssueCarriesTheRowsType() {
+  local dir log findings out status filed
+  dir=$(throwaway_project)
+  log="$dir/calls.log"; : > "$log"
+  issues_fixture "$dir" '[]'
+  findings=$(write_findings "$dir/findings.jsonl" "$(finding clear 42 case alpha)")
+
+  out=$(cd "$dir" && GH_STUB_DIR="$dir" GH_STUB_RECORD="$log" \
+    bash "$SENSORS_ENGINE/run.sh" --only fixture-emit --apply --input "$findings" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the apply run succeeds: $out"
+  assert_eq "1" "$(recorded "$log" 'issue create')" "the clear files the row's record issue"
+  filed=$(grep -- 'issue create' "$log" | tail -1 | tr -d '\\')
+  assert_contains "$filed" "sensor record: fixture-emit" "the filed issue is the row's record"
+  assert_contains "$filed" "--type Bug" "the record carries the type its row declares"
 }
 
 # A row may declare its own recurrence bound, and that bound is a count of at least one: a value that is not a count

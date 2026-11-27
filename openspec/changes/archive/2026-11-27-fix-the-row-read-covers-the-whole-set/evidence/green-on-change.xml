@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/sensors/tests (the whole sensor suite, on the change)" tests="100" failures="0" errors="0" time="0" run="2026-11-27">
+  <testcase classname="tools/sensors/tests" name="lib#theRowReadCoversTheWholeSet"/>
+  <system-out>sensor-selftest: all 100 cases passed (JDK 21, offline, no token)
+bash tools/sensors/tests/sensor-selftest.sh — 100 PASS, 0 FAIL; see evidence/green-suite.log</system-out>
+</testsuite>

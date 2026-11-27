@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/sensors/tests (the row's own read, on the base)" tests="1" failures="1" errors="0" time="0" run="2026-11-27">
+  <testcase classname="tools/sensors/tests" name="lib#theRowReadCoversTheWholeSet">
+    <failure message="the condition list reaches the item older than the newest page: : expected '5', got '' — with `gh issue list --state all --limit 400` the 401-item fixture answers its newest 400, so the row's only item (the oldest) is outside the read">see evidence/red-on-base.log</failure>
+  </testcase>
+  <system-out>tools/sensors/tests/sensor-selftest.sh --case 'lib#theRowReadCoversTheWholeSet': FAIL
+  the condition list reaches the item older than the newest page: : expected '5', got ''
+FAIL lib#theRowReadCoversTheWholeSet</system-out>
+</testsuite>

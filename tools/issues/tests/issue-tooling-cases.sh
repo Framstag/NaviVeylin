@@ -59,6 +59,7 @@ ISSUES_SHELL_CASES=(
   'list#filtersByEachCriterion'
   'list#idResolvesTheMarker'
   'list#idDoesNotMatchASubstring'
+  'list#readsTheWholeSetNotTheNewestPage'
   'surface#noDeletePath'
   'surface#reservedLabelRefusesInEveryWritePath'
   'surface#reservationIsNotBypassedByTheOtherLabelFlags'
@@ -243,6 +244,7 @@ issues_run_shell_case() {
     'list#filtersByEachCriterion') case_list_filtersByEachCriterion ;;
     'list#idResolvesTheMarker') case_list_idResolvesTheMarker ;;
     'list#idDoesNotMatchASubstring') case_list_idDoesNotMatchASubstring ;;
+    'list#readsTheWholeSetNotTheNewestPage') case_list_readsTheWholeSetNotTheNewestPage ;;
     'surface#noDeletePath') case_surface_noDeletePath ;;
     'surface#reservedLabelRefusesInEveryWritePath') case_surface_reservedLabelRefusesInEveryWritePath ;;
     'surface#reservationIsNotBypassedByTheOtherLabelFlags') case_surface_reservationIsNotBypassed ;;
@@ -1980,6 +1982,43 @@ case_list_idDoesNotMatchASubstring() {
   out=$(run_tool list.sh --id 1 2>&1)
   status=$?
   assert_eq "4" "$status" "--id 1 must not match <!-- nvid: 11 --> either"
+}
+
+# A tracker bigger than the window the tool used to ask for, numbered 1..total so the newest page is its tail: the
+# stub `gh` answers newest-created first and slices only when the fixture is longer than the window
+# (`tools/issues/tests/fixtures/gh`), so `#1` is the item a window of 400 drops.
+list_tracker() { # <dir> <total> → a tracker of <total> issues, numbered 1..total
+  local dir="$1" total="$2"
+  jq -n --argjson n "$total" '
+    [ range(1; $n + 1) as $number
+      | { number: $number,
+          state: "OPEN",
+          title: ("§" + ($number | tostring) + " a fixture item, number " + ($number | tostring)),
+          updatedAt: "2026-11-27T09:00:00Z",
+          body: ("<!-- nvid: " + ($number | tostring) + " -->\n\n- **Observed** ✗: nothing."),
+          author: { login: "Framstag" },
+          labels: [ { name: "class/bug" }, { name: "category/specs-and-process" },
+                    { name: "status/open-device" }, { name: "source/todo-import" } ] } ]' > "$dir/issues.json"
+}
+
+# Both reads the list takes are over the set the tracker counts rather than over the newest page of it (#1095): the
+# `--id` lookup finds a marker below the window, a filtered selection holds the oldest item, and a `--limit` a caller
+# asks for is still the window it gets — a window is now the caller's word for one, never the tool's silent default.
+case_list_readsTheWholeSetNotTheNewestPage() {
+  export GH_STUB_DIR="$(scratch)"
+  local out
+  list_tracker "$GH_STUB_DIR" 405
+
+  out=$(run_tool list.sh --id 1 --json) || fail "list --id 1 failed on a tracker larger than the newest page"
+  assert_eq "1" "$(jq 'length' <<< "$out")" "a marker outside the newest page resolves to its one issue"
+  assert_eq "1" "$(jq -r '.[0].number' <<< "$out")" "and it is the old item that carries it"
+
+  out=$(run_tool list.sh --class bug --json) || fail "list --class bug failed on a tracker larger than the newest page"
+  assert_eq "405" "$(jq 'length' <<< "$out")" "a filtered selection is drawn from the whole set"
+  assert_eq "1" "$(jq -r '[.[].number] | min' <<< "$out")" "including the oldest item outside the newest page"
+
+  out=$(run_tool list.sh --class bug --json --limit 400) || fail "list --limit 400 failed"
+  assert_eq "400" "$(jq 'length' <<< "$out")" "a window the caller asks for is the window it gets"
 }
 
 case_import_dryRunEmitsOnePreviewPerFinding() {

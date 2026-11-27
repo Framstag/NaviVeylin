@@ -36,7 +36,7 @@ source "$here/lib.sh"
 json=0
 sensor=1
 write=1
-limit=400
+limit=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --json) json=1; shift ;;
@@ -47,6 +47,8 @@ while [ $# -gt 0 ]; do
     *) loop_die "prescreen: unknown argument $1" ;;
   esac
 done
+
+limit_args=(); [ -z "$limit" ] || limit_args=(--limit "$limit")  # the caller's window, or the counted set (#1095)
 
 loop_resolve
 loop_roles_load
@@ -257,7 +259,7 @@ branch_question_answered() { # <issue> <branch> <head> → the question the answ
 
 # ── selection ────────────────────────────────────────────────────────────────────────────────────
 
-candidates_json=$(loop_issue_tool list.sh --eligible-only --json --limit "$limit" 2>/dev/null) ||
+candidates_json=$(loop_issue_tool list.sh --eligible-only --json ${limit_args[@]+"${limit_args[@]}"} 2>/dev/null) ||
   loop_die "prescreen: the issue tooling could not list eligible items"
 [ -n "$candidates_json" ] || candidates_json='[]'
 

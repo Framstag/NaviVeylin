@@ -334,13 +334,34 @@ issues_set_count() {
 # newest-created first, so the fixed 400 asked for here dropped the oldest items while every caller reported the
 # set as read. The one item beyond the count is what makes a full read visible — `issues_page_records` refuses a
 # read that comes back that full, and a caller that counts for itself passes the window it counted.
+#
+# `state` and `issueType` are asked for beside the fields the dedup reads, because `tools/issues/list.sh` answers its
+# closed and untyped selectors from this same answer rather than paying a second read of its own (#1095).
 issues_issue_list() { # [<window>] → the issue list
   local window="${1:-}" count
   if [ -z "$window" ]; then
     count=$(issues_set_count) || exit $?
     window=$((count + 1))
   fi
-  gh issue list --state all --limit "$window" --json number,title,labels,body,author
+  gh issue list --state all --limit "$window" --json number,title,labels,body,author,state,issueType
+}
+
+# The same list, counted and self-checking, for a caller that answers with items rather than with a page: the window
+# is the counted set plus one, and an answer that full is refused as `issue-set-uncovered` instead of being reported
+# as the set (#1095). `issues_page_records` keeps its own copy because it decodes every body into a scratch
+# directory, which a listing does not.
+issues_issue_list_whole() { # → the counted set's issue list
+  local set window issues count
+  set=$(issues_set_count) || return $?
+  window=$((set + 1))
+  issues=$(issues_issue_list "$window") || return $?
+  count=$(printf '%s' "$issues" | jq 'length')
+  # A diagnostic on stderr, for the reason `issues_page_records` gives: the read is taken inside a command
+  # substitution, and a refusal on stdout would be answered as if it were the list.
+  [ "$count" -lt "$window" ] ||
+    issues_refuse "issue-set-uncovered" \
+      "the tracker reports $set issue(s) and the read came back full at $count — refusing a set the read could not cover" >&2
+  printf '%s\n' "$issues"
 }
 
 # --------------------------------------------------------------------------- the state namespace

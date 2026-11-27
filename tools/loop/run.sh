@@ -671,17 +671,17 @@ fi
 #    slot of the cap that stops work on the items they can (#745). Measured 2026-11-02 on the live tracker: 13
 #    labelled, 9 of them candidates, against a cap of 10 — the run refused with a free slot in the count it can
 #    answer.
-open_decisions=$(loop_issue_tool list.sh --json --limit 400 --eligible-only 2>/dev/null |
+open_decisions=$(loop_issue_tool list.sh --json --eligible-only 2>/dev/null |
   jq -r --arg label "$decision_label" '[.[] | select([.labels[].name] | index($label))] | length')
 if [ "${open_decisions:-0}" -ge "$max_decisions" ]; then
   # The refusal names both counts, so a reader can tell the 9 questions the cap compared from the 13 items that
   # merely carry the label. Read here rather than above: on the path a run normally takes it costs no read.
-  labelled_decisions=$(loop_issue_tool list.sh --json --limit 400 2>/dev/null |
+  labelled_decisions=$(loop_issue_tool list.sh --json 2>/dev/null |
     jq -r --arg label "$decision_label" '[.[] | select([.labels[].name] | index($label))] | length')
   # The list is read once and used twice: printed for the console the caller watches, and carried in the reason,
   # because a refusal is the run's own record and the console scrolls away (issue #787). Both counts and the list
   # come from reads this arm already paid for.
-  decision_list=$(loop_issue_tool list.sh --json --limit 400 --eligible-only 2>/dev/null |
+  decision_list=$(loop_issue_tool list.sh --json --eligible-only 2>/dev/null |
     jq -r --arg label "$decision_label" \
       '.[] | select([.labels[].name] | index($label)) | "#\(.number) \(.title)"')
   loop_emit decisions-cap open="$open_decisions" labelled="${labelled_decisions:-$open_decisions}" max="$max_decisions"

@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 # List issues by label criteria.
 #
-# Selection is the cheap operation — titles and labels first, bodies only for candidates — so this reads one
-# paged call and prints one line per match (design D3, D8).
+# Selection is the cheap operation — titles and labels first, bodies only for candidates — so this reads one call
+# and prints one line per match (design D3, D8). That one call is over the set the tracker counts, not over the
+# newest page of it (#1095): the window used to be a fixed 400, so an `--id` below the boundary answered "this item
+# does not exist" over an item the tracker held, and a filtered selection was drawn from an arbitrary page with
+# nothing in the output naming the window. Both reads go through the whole-set reader, which counts first and
+# refuses a read it could not cover (`issues_issue_list_whole`, `tools/issues/lib.sh`).
+#
+# `--limit <n>` stays, and is now what its name says: the window a caller explicitly asks for. With no `--limit` the
+# read is the counted set.
 #
 # Exit: 0 ok, 2 usage, 3 policy, 4 `--id` found no issue carrying that marker.
 #
@@ -39,7 +46,7 @@ profile_arg=""
 json=0
 eligible_only=0
 include_closed=0
-limit=400
+limit=""
 id_arg=""
 prio_filter=""
 unranked=0
@@ -60,7 +67,7 @@ while [ $# -gt 0 ]; do
     --include-closed) include_closed=1; shift ;;
     --limit) need_value "$@"; limit="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
-    -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,39p' "$0"; exit 0 ;;
     *) issues_die "list: unknown argument $1" ;;
   esac
 done
@@ -69,12 +76,23 @@ issues_resolve "$profile_arg"
 profile="$ISSUES_PROFILE"
 separator=$(issues_profile_value namespaceSeparator)
 
+# The one answer both reads below are taken over (#1095): the set the tracker counts, or — when the caller names
+# `--limit n` — exactly that window. A window is the caller's explicit word for a page, never the tool's default:
+# the newest page of a tracker larger than the window answers "this item does not exist" over items it holds.
+read_issues() {
+  if [ -n "$limit" ]; then
+    issues_issue_list "$limit"
+  else
+    issues_issue_list_whole
+  fi
+}
+
 if [ -n "$id_arg" ]; then
   case "$id_arg" in
     ''|*[!0-9]*) issues_die "list: --id wants the number of a migrated entry, not '$id_arg'" ;;
   esac
   # the marker is the identity: `<!-- nvid: 129 -->` and nothing shorter
-  issues=$(gh issue list --state all --limit "$limit" --json number,title,labels,author,body)
+  issues=$(read_issues) || exit $?
   selected=$(printf '%s' "$issues" | jq -c --arg marker "<!-- nvid: ${id_arg} -->" \
     '[.[] | select(.body // "" | contains($marker))]')
   if [ "$(printf '%s' "$selected" | jq 'length')" -eq 0 ]; then
@@ -126,7 +144,7 @@ if [ -n "$prio_filter" ]; then
 fi
 
 required_json=$(issues_profile_value requiredLabels | jq -R . | jq -s .)
-issues=$(gh issue list --state all --limit "$limit" --json number,title,labels,author,state,issueType)
+issues=$(read_issues) || exit $?
 
 query='[.[]'
 if [ "$include_closed" -eq 0 ]; then

@@ -12,6 +12,7 @@ import com.framstag.libosmscout.client.FavoriteLocation
 import com.framstag.libosmscout.client.StarredFavoriteLocation
 import com.naviveylin.auto.R
 import com.naviveylin.core.AutoEntryPoint
+import com.naviveylin.core.DiagnosticsLog
 import com.naviveylin.core.NavigationViewModel
 import com.naviveylin.core.SurfaceOrigin
 import com.naviveylin.core.orderedGroupNames
@@ -20,7 +21,9 @@ import androidx.lifecycle.LifecycleOwner
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -138,6 +141,21 @@ class FavoritesScreen(
      */
     private var storeUnavailable = false
 
+    /**
+     * Whether the started period's wait for a first list state ran out (`armWaitBound()`, spec
+     * `auto-favorites` — A wait that publishes nothing is bounded and offers its own exit; issue #994).
+     * It is the only state behind the loading row: while it is set and nothing was published, the screen
+     * serves the unavailable row plus the header action that re-observes, instead of a wait with no end.
+     */
+    private var waitExpired = false
+
+    /**
+     * The timer that bounds the current started period's wait, or null while none is armed
+     * (issue #994). Cancelled by the first publication, by the period's end and by the exit, so a trip
+     * can only ever be the current period's.
+     */
+    private var waitJob: Job? = null
+
     init {
         enableBackNavigation()
         // The favorites, group order and starred order are NOT collected here: they are this
@@ -148,6 +166,9 @@ class FavoritesScreen(
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) {
                 screenObservations.start()
+                // The wait this period begins is bounded from here (spec `auto-favorites` — A wait that
+                // publishes nothing is bounded and offers its own exit; issue #994).
+                armWaitBound()
                 // The capacity is asked once per started period and cached in a field; the template
                 // builder never queries the host (design D2 — the read belongs off the host thread,
                 // and every screen asks for itself: spec `car-list-row-limit` — Capacity is re-read
@@ -156,12 +177,17 @@ class FavoritesScreen(
             }
             override fun onStop(owner: LifecycleOwner) {
                 // Every observation ends with the started period (spec: auto/screen-observation —
-                // One instance of each observation per started period).
+                // One instance of each observation per started period), and so does the bound on its
+                // wait: a stopped screen renders nothing a timer could still reach (issue #994).
                 observations.stop()
+                waitJob?.cancel()
+                waitJob = null
             }
             override fun onDestroy(owner: LifecycleOwner) {
                 // A destroy without a stop must not leave an observation running.
                 observations.stop()
+                waitJob?.cancel()
+                waitJob = null
                 // Cancel the screen's own scope (row actions, pushes, the capacity read) so its work
                 // does not outlive the screen either.
                 scope.cancel()
@@ -203,6 +229,58 @@ class FavoritesScreen(
         storeReady = state.storeReady
         storeUnavailable = state.failed
         loaded = true
+        // The period published, so its wait is over: a late timer must not overwrite the state it was
+        // waiting for (spec `auto-favorites` — A publication after the trip is shown as the list).
+        waitJob?.cancel()
+        waitJob = null
+        invalidate()
+    }
+
+    /**
+     * Bound the started period's wait for its first list state (spec `auto-favorites` — A wait that
+     * publishes nothing is bounded and offers its own exit; issue #994).
+     *
+     * The timer belongs to the period it bounds: it is armed in `onStart` and by [restartObservation],
+     * and cancelled by the first publication, by the period's end and by a restart. On expiry with
+     * nothing published it sets [waitExpired], logs the trip once (flags and counts only —
+     * `guidelines/Logging.md` §3) and re-renders, so the loading row can never be terminal.
+     */
+    private fun armWaitBound() {
+        waitJob?.cancel()
+        waitExpired = false
+        waitJob = scope.launch {
+            delay(WAIT_BOUND_MS)
+            // A publication that arrived while the timer ran is this period's answer, and a wait that
+            // already ended has had its trip: neither is a second one.
+            if (loaded || waitExpired) return@launch
+            waitExpired = true
+            DiagnosticsLog.log(
+                CAR_SCREEN_DIAG_TAG,
+                "favorites wait bound tripped after ${WAIT_BOUND_MS}ms without a publication " +
+                    "(loaded=$loaded, storeReady=$storeReady, failed=$storeUnavailable)"
+            )
+            invalidate()
+        }
+    }
+
+    /**
+     * The wait's exit, and the header action's click listener (spec `auto-favorites` — The bound's exit
+     * restarts the observation; issue #994): the started period's observation is stopped and started
+     * again, so the store's initialisation is attempted once more and the loading row is honest until
+     * that period publishes.
+     *
+     * `CarScreenObservations.start()` after `stop()` is the seam's own one-instance-per-period guarantee
+     * (`auto/screen-observation`), so the restart cannot accumulate a second collector. A screen whose
+     * period already ended has nothing to re-observe, and the action is only rendered while one runs.
+     */
+    internal fun restartObservation() {
+        if (!observations.isRunning) return
+        loaded = false
+        storeReady = false
+        storeUnavailable = false
+        observations.stop()
+        screenObservations.start()
+        armWaitBound()
         invalidate()
     }
 
@@ -210,13 +288,23 @@ class FavoritesScreen(
 
     /** Template body; guarded by [carListTemplate] (spec: car-host-fault-isolation). */
     private fun buildTemplate(): ListTemplate {
-        val builder = ListTemplate.Builder()
-            .setHeader(
-                Header.Builder()
-                    .setTitle(title())
-                    .setStartHeaderAction(Action.BACK)
+        val header = Header.Builder()
+            .setTitle(title())
+            .setStartHeaderAction(Action.BACK)
+        // The exit is offered exactly where the template has nothing else to offer: a wait that ran out
+        // with nothing published (spec `auto-favorites` — A wait that publishes nothing is bounded and
+        // offers its own exit; issue #994). A titled header action, not a list action: the host's FAB
+        // constraints are icon-only (`guidelines/UICar.md` §3), and `DiagnosticsScreen` carries its own
+        // refresh the same way.
+        if (waitExpired && !loaded) {
+            header.addEndHeaderAction(
+                Action.Builder()
+                    .setTitle(carContext.getString(R.string.refresh))
+                    .setOnClickListener { restartObservation() }
                     .build()
             )
+        }
+        val builder = ListTemplate.Builder().setHeader(header.build())
 
         // Four states, in this order (spec: auto-favorites — The favourites list distinguishes a loading
         // store from an empty one; design D3; and — A store that cannot be observed is reported, not left
@@ -224,6 +312,12 @@ class FavoritesScreen(
         // loading row while nothing has been published or the store is not initialised yet; then either
         // the list or, only for a store that is ready and genuinely empty, the empty state.
         if (storeUnavailable) {
+            builder.setSingleList(unavailableList())
+            return builder.build()
+        }
+        // The wait's own end, ahead of the loading row it replaces: nothing was published and the bound
+        // ran out, so "initialising" is no longer a claim the screen can keep (issue #994).
+        if (waitExpired && !loaded) {
             builder.setSingleList(unavailableList())
             return builder.build()
         }
@@ -421,5 +515,18 @@ class FavoritesScreen(
 
     companion object {
         private const val TAG = "FavoritesScreen"
+
+        /**
+         * How long a started period may wait for its first list state before the screen serves the
+         * unavailable row and its exit (spec `auto-favorites` — A wait that publishes nothing is bounded
+         * and offers its own exit; issue #994).
+         *
+         * The hop this bounds was measured at 623–1715 ms with the store already ready
+         * (`FavoritesScreenObservations`, issue #110) and is attempted twice (issue #995), so the slowest
+         * healthy wait observed is ≈3.4 s; 8 s is more than twice that, so a healthy store cannot flash
+         * the unavailable row, and it is short enough that a driver looking at the loading row gets an
+         * answer.
+         */
+        internal const val WAIT_BOUND_MS = 8_000L
     }
 }

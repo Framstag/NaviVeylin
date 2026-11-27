@@ -24,10 +24,13 @@ import io.mockk.mockkStatic
 import io.mockk.Runs
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeoutOrNull
@@ -296,6 +299,132 @@ class FavoritesScreenTest {
             "an uninitialised store must not be reported as empty, got $titles",
             !titles.contains(carContext.getString(R.string.no_favorites_saved))
         )
+    }
+
+    // --- The wait's bound and its exit (spec auto-favorites — A wait that publishes nothing is
+    // bounded and offers its own exit; issue #994; guidelines/UICar.md §3c) ---
+
+    /**
+     * A virtual advance past any bound the screen could arm. The bound is a `delay` on the screen's own
+     * scope, so the test scheduler owns it; a minute is past every value a car wait notice may carry, and
+     * the assertions name the row rather than the number, so a later bound under a minute still trips.
+     */
+    private val pastTheWaitBound = 60_000L
+
+    /** The titles of the header's end actions, in the order the host renders them. */
+    private fun endHeaderActionTitles(template: ListTemplate): List<String> =
+        template.header?.endHeaderActions?.map { it.title.toString() } ?: emptyList()
+
+    /**
+     * The store the bound is asserted against: readiness false, so the period resolves it, and an
+     * initialisation that never returns, so that resolution publishes nothing at all (issue #994).
+     */
+    private fun aStoreThatNeverPublishes() {
+        favoritesProvider.ready.value = false
+        favoritesProvider.blockInit = true
+    }
+
+    @Test
+    fun aWaitWithNoPublicationIsBoundedByTheUnavailableRow() = runTest(mainDispatcherRule.dispatcher) {
+        aStoreThatNeverPublishes()
+        val screen = newScreen()
+        // An advance that stays under the bound: `advanceUntilIdle()` would run the bound's own timer
+        // out, and the assertion below is the state before it trips.
+        advanceTimeBy(1_000L)
+
+        // Below the bound the loading row is the honest template: a slow store is not reported as gone.
+        assertEquals(listOf("Loading..."), singleTitles(screen.onGetTemplate()))
+
+        advanceTimeBy(pastTheWaitBound)
+        advanceUntilIdle()
+
+        val template = screen.onGetTemplate()
+        assertEquals(
+            "a wait that published nothing must not outlive the loading row",
+            listOf(carContext.getString(R.string.favorites_unavailable)),
+            singleTitles(template)
+        )
+        assertEquals(
+            "the wait's exit is one titled header action beside the back action",
+            listOf(carContext.getString(R.string.refresh)),
+            endHeaderActionTitles(template)
+        )
+    }
+
+    @Test
+    fun theWaitsExitRestartsTheObservation() = runTest(mainDispatcherRule.dispatcher) {
+        aStoreThatNeverPublishes()
+        val screen = newScreen()
+        advanceUntilIdle()
+        advanceTimeBy(pastTheWaitBound)
+        advanceUntilIdle()
+        val tripped = screen.onGetTemplate()
+        assertEquals(
+            listOf(carContext.getString(R.string.favorites_unavailable)),
+            singleTitles(tripped)
+        )
+
+        // The store answers again when the driver takes the exit: the initialisation returns.
+        favoritesProvider.blockInit = false
+        tapEndHeaderAction(tripped, carContext.getString(R.string.refresh))
+        advanceUntilIdle()
+
+        assertEquals(
+            "the exit re-observes the store, so its initialisation is attempted a second time",
+            2,
+            favoritesProvider.initAttempts
+        )
+        val restarted = screen.onGetTemplate()
+        assertEquals(
+            "the restarted period's wait is the honest state again, not the row the old trip served",
+            listOf(carContext.getString(R.string.loading)),
+            singleTitles(restarted)
+        )
+        assertTrue(
+            "the exit is offered only while the wait it ends has tripped",
+            endHeaderActionTitles(restarted).isEmpty()
+        )
+    }
+
+    @Test
+    fun aLatePublicationAfterTheTripIsShown() = runTest(mainDispatcherRule.dispatcher) {
+        // A store that resolves late rather than never: the bound trips while its initialisation is
+        // still running, and the publication that follows must win over the row the trip served.
+        favoritesProvider.ready.value = false
+        favoritesProvider.initDelayMs = 30_000L
+        val screen = newScreen()
+        advanceTimeBy(FavoritesScreen.WAIT_BOUND_MS + 1_000L)
+
+        assertEquals(
+            "the bound trips while the store is still initialising",
+            listOf(carContext.getString(R.string.favorites_unavailable)),
+            singleTitles(screen.onGetTemplate())
+        )
+
+        favoritesProvider.flow.value = mapOf("Favorites" to listOf(fav("Home")))
+        favoritesProvider.ready.value = true
+        advanceTimeBy(30_000L)
+        advanceUntilIdle()
+
+        assertEquals(
+            "a publication after the trip is the list, not the row and not a second trip",
+            listOf("Favorites"),
+            singleTitles(screen.onGetTemplate())
+        )
+        assertTrue(
+            "the exit is gone once the period has published",
+            endHeaderActionTitles(screen.onGetTemplate()).isEmpty()
+        )
+    }
+
+    /**
+     * Activate the header's end action titled [title] — the way the host delivers it: through the
+     * action's click delegate.
+     */
+    private fun tapEndHeaderAction(template: ListTemplate, title: String) {
+        val action = template.header?.endHeaderActions?.firstOrNull { it.title.toString() == title }
+        assertNotNull("no end header action titled $title in ${endHeaderActionTitles(template)}", action)
+        action!!.onClickDelegate!!.sendClick(object : androidx.car.app.OnDoneCallback {})
     }
 
     @Test
@@ -964,12 +1093,33 @@ class FavoritesScreenTest {
          */
         var failAccessors = false
 
+        /** How many times the store's initialisation was attempted (issue #994 — the exit re-observes). */
+        var initAttempts = 0
+            private set
+
+        /**
+         * When true the store's initialisation never returns, so the started period's resolution never
+         * reaches a publication — the wait the screen's bound must end (issue #994).
+         */
+        var blockInit = false
+
+        /**
+         * How long the store's initialisation takes, in virtual time (issue #994 — a publication that
+         * arrives after the screen's bound tripped). 0 returns at once, which is the default.
+         */
+        var initDelayMs = 0L
+
         override fun storeReady(): StateFlow<Boolean> {
             if (failAccessors) throw IllegalStateException("provider unavailable")
             return ready
         }
 
-        override suspend fun init(filePath: String) = true
+        override suspend fun init(filePath: String): Boolean {
+            initAttempts += 1
+            if (initDelayMs > 0L) delay(initDelayMs)
+            if (blockInit) awaitCancellation()
+            return true
+        }
         override suspend fun addFavorite(name: String, lat: Double, lon: Double) = true
         override suspend fun removeFavorite(lat: Double, lon: Double) = true
     }

@@ -251,6 +251,18 @@ describes (spec: `route-calculation-feedback`). The route-calculation wait notic
   main thread), never `RendererState.DEGRADED`: a repeatedly faulting renderer is a different event,
   and its notice is drawn on a surface that has frames.
 
+- **Rule: a list screen's loading row is bounded and carries its own exit.** A screen that serves a
+  loading row while it waits for its first list state MUST bound that wait. Past the bound with nothing
+  published it serves its unavailable row in place of the loading row, carrying exactly one titled
+  **header** action (never a list action: §3's `ACTIONS_CONSTRAINTS_FAB` is icon-only with
+  `maxCustomTitles = 0`) that stops and restarts the observation the wait belonged to. The trip is logged
+  once per period, flags and counts only (`guidelines/Logging.md` §3), and a publication that arrives
+  after the trip wins over the row it served — a bound never outlives the thing it describes. The
+  reference implementation is `FavoritesScreen` (`WAIT_BOUND_MS` = 8 000 ms; the hop it covers measured
+  623–1715 ms with the store already ready and is attempted twice, so ≈3.4 s is the slowest healthy wait
+  and the bound cannot flash the row on a healthy store). The case that asserts it is
+  `FavoritesScreenTest.aWaitWithNoPublicationIsBoundedByTheUnavailableRow` (issue #994).
+
 ## 4. Details attribute list (Android Auto)
 
 Source: spec `auto-destination-details` — all description attributes shown.

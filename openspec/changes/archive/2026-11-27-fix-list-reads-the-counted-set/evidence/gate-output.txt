@@ -1,0 +1,241 @@
+# the gate child's tool output, where the gate it ran printed — the last 200 lines
+PASS  values#proseMatchesTheProfile — LOOP-CHILD-TURNS-MAX: 6 roles, prose matches config
+PASS  values#aDriftedValueIsReported — a profile value the section does not state is reported with the figure the section states and the one the profile records
+PASS  values#aRoleWithNoProseRow — a profile role the section states no value for is reported, with the figure a run would apply
+PASS  values#aRowTheProfileDoesNotRecord — a stated bound the profile records no key for is reported, so the section cannot promise a value nothing enforces
+PASS  values#aProfileWithoutTheKeysIsRefused — a profile with no turn-bound key is refused instead of read as a tree with nothing to compare
+check-doc-values-selftest: all 5 cases passed (throwaway fixtures and this tree, no Gradle, no device, no network)
+gate: tools/tests/check-doc-values-selftest.sh — 0s
+gate-pool: 4 steps start together — at most 4 in flight
+
+A1.2	WorkPackage#questionIsNotTheVerdictWord	the same rule in the work package's fallback, which the answer's marker now makes rare but not absent
+A2.1	answer#parkWritesTheAnswerAndKeepsTheMode	a park writes the answer and performs no transition — without the empty arm the item leaves the queue it must stay in
+A2.2	decisions#aParkedItemIsListedAsParked	the queue prints what a park waits for, not the answer's own first line where the question stood
+A3.1	answer#parkWritesTheAnswerAndKeepsTheMode	the mark only a park writes (issue #859) — without it the comment is the answer's shape and the queue cannot tell a park from a filed finding's recorded answer
+A3.2	decisions#anAnsweredCreationIsNotAParkedItem	the predicate requiring the mark as well as the shape (issue #859) — without it an answer the filing path recorded prints `parked: …` although nobody parked it
+A3.3	decisions#anAnsweredCreationIsNotAParkedItem	the question an answer binds being printed for an answer without the mark (issue #859) — without it the answer's own first line stands where a question belongs
+gate: tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list — 0s
+LOOP-GATE: tests=1082 failures=1 errors=0 (tools/loop/tests/loop-selftest.sh --from-git 3991fbea11459d8d343222b5956f1a41c316dfdb 581s, bash tools/loop/tests/loop-mutations.sh --check 17s, tools/issues/tests/issue-tooling-selftest.sh 591s, tools/issues/check-metadata.sh 3s, tools/issues/tests/metadata-mutations.sh --list 1s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 1s, tools/tests/check-portability-selftest.sh 33s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — failing: tools/loop/tests/loop-selftest.sh --from-git 3991fbea11459d8d343222b5956f1a41c316dfdb — base-red: tools/loop/tests/loop-selftest.sh --from-git 3991fbea11459d8d343222b5956f1a41c316dfdb:2, tools/check-openspec-hygiene.sh:1
+
+756:FAIL run#theWorkerPromptFitsItsBudget
+1013:run#aQuotaHoldPausesTheRunAndResumesIt| base-red: measured by the gate that first needs a step — no pre-flight runs at the start
+1123:base-red: measured by the gate that first needs a step — no pre-flight runs at the start
+1226:FAIL run#aQuotaHoldPausesTheRunAndResumesIt
+1233:run#theQuotaSwitchIsExplicit| base-red: measured by the gate that first needs a step — no pre-flight runs at the start
+1342:base-red: measured by the gate that first needs a step — no pre-flight runs at the start
+1444:FAIL run#theQuotaSwitchIsExplicit
+1465:LOOP-GATE-BASERED-MEASURE:tools/loop/tests/loop-selftest.sh --from-git 3991fbea11459d8d343222b5956f1a41c316dfdb — measuring this step on 3991fbea1145 in /home/tim/projects/NaviVeylin; its output joins /home/tim/projects/NaviVeylin/.pi/issue-loop/base-red.log
+1467:LOOP-GATE-BASERED:tools/loop/tests/loop-selftest.sh --from-git 3991fbea11459d8d343222b5956f1a41c316dfdb:2
+1798:LOOP-GATE-BASERED-MEASURE:tools/check-openspec-hygiene.sh — measuring this step on 3991fbea1145 in /home/tim/projects/NaviVeylin; its output joins /home/tim/projects/NaviVeylin/.pi/issue-loop/base-red.log
+1800:LOOP-GATE-BASERED:tools/check-openspec-hygiene.sh:1
+2039:LOOP-GATE: tests=1082 failures=1 errors=0 (tools/loop/tests/loop-selftest.sh --from-git 3991fbea11459d8d343222b5956f1a41c316dfdb 581s, bash tools/loop/tests/loop-mutations.sh --check 17s, tools/issues/tests/issue-tooling-selftest.sh 591s, tools/issues/check-metadata.sh 3s, tools/issues/tests/metadata-mutations.sh --list 1s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 1s, tools/t
+[LOOP-TRIMMED: ctx_shell returned 2799 characters; the first 2000 are shown — read the rest in ranges (ctx_read mode="lines:N-M")]
+
+--- run#escalationCarriesTheDecision[13] (exit 1)
+Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261127-140035')
+HEAD ist jetzt bei 44e0ac8 init
+stub gh: recorded `gh issue edit`
+LOOP-PROMPT: the worker prompt is 29012 B, over the recorded bound 29000 B (LOOP_WORKER_PROMPT_MAX_BYTES) — every turn of the child re-sends it, so a prompt that grew is paid at every turn of the item rather than once (issue #1082)
+HEAD ist jetzt bei debfc0d fix: an-eligible-bug-whose-cited-path-still-e (#21) — archive with its evidence
+Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war debfc0d).
+released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+stub gh: recorded `gh issue edit`
+stub gh: recorded `gh issue edit`
+closed #21 (completed)
+  landing #21 debfc0d21749346f1cd9010cfded7c6fec2306ec: unscored — the pipeline runs of this commit could not be read
+pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+  #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+worktree: no published main could be fetched — the sweep compares against the base the run recorded
+  the composed worker prompt is 29012 B, over the recorded bound of 29000 B (LOOP_WORKER_PROMPT_MAX_BYTES), and every turn of the item re-sends it
+FAIL run#theWorkerPromptFitsItsBudget
+PASS run#reviewRoundsCapAtTwo
+run#metricsRecordedPerItem| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261127-140105')
+run#metricsRecordedPerItem| HEAD ist jetzt bei c76fa29 init
+run#mayCloseNoLeavesTheIssueOpen| stub gh: recorded `gh issue edit`
+
+LOOK: 1 matches in 1 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/loop.conf for 'WORKER_PROMPT_MAX_BYTES'
+LOOK-FILE: tools/loop/loop.conf 1
+tools/loop/loop.conf:393:LOOP_WORKER_PROMPT_MAX_BYTES=29000
+===
+LOOK: 3 matches in 1 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/tools/loop/tests/loop-cases.sh for 'theWorkerPromptFitsItsBudget'
+LOOK-FILE: tools/loop/tests/loop-cases.sh 3
+tools/loop/tests/loop-cases.sh:355:  'run#theWorkerPromptFitsItsBudget'
+tools/loop/tests/loop-cases.sh:1218:    'run#theWorkerPromptFitsItsBudget') fn=case_run_theWorkerPromptFitsItsBudget ;;
+
+# `0`, or a configuration that records no key, is no bound — the value every reader of these keys already knows.
+#
+# **Why 29 000 and not the 26 385 the prompt measures.** A composed prompt carries the item's own paths (the change
+# root, the package, the evidence and the scratch directory), so the figure moves with the tree it is rendered in: a
+# throwaway project whose root is deeper than a run's item directory renders at 27 725 B for the same template. The
+# bound is set above that, the way `LOOP_REVIEW_INPUT_MAX_BYTES` is a round number above the diff it bounds, so a
+# case's own render is under it and a prompt that grew by a kilobyte — a paragraph read on every turn of every item —
+# is a line rather than a fact nobody counts.
+LOOP_WORKER_PROMPT_MAX_BYTES=29000
+# The floor below which this host may not start an item, in MiB of available memory (`MemAvailable`, read from the
+# file `LOOP_MEMINFO_PATH` names). Below it the item is recorded `blocked` with the measurement and the floor it
+# was compared against, and the run stops: a run on a starved host cannot become productive by taking the next
+# item. Measured 2026-10-19 (issue #209): item #126's gate hit **194 MB free RAM and 18 GB swap** and spent 30 min
+# inside `:app:kspMobileDebugUnitTestKotlin`; the same 5 680 tests took **3m47s** on a quiet host. Measured on the
+# same host during a run: 15 668 MB total, 13 168 MB used, **467 MB free**, 2 499 MB available, swap 13 915 MB of
+# 37 887 MB — Firefox 7 600 MB, VS Code's Java language server 2 282 MB across three JVMs, Gradle/Kotlin daemons
+
+run#theWorkerPromptFitsItsBudget| closed #21 (completed)
+run#theWorkerPromptFitsItsBudget|   landing #21 8eaa45f87d1a48c1033dcfcc6bf392de3423cff6: unscored — the pipeline runs of this commit could not be read
+run#theWorkerPromptFitsItsBudget| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#theWorkerPromptFitsItsBudget|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#theWorkerPromptFitsItsBudget| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS run#theWorkerPromptFitsItsBudget
+
+case_run_theWorkerPromptFitsItsBudget() {
+  # files: tools/loop/prompts/ tools/loop/loop.conf tools/loop/run.sh tools/loop/child.sh tools/loop/state.sh tools/loop/report.sh tools/loop/events.tsv tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/tests/fixtures/scenarios/ tools/pi-child-events.sh tools/tooling.json
+  local d p p2 prompt reference heading bound bytes out conf
+  d=$(scratch); p=$(new_project)
+  # The bound is read out of the configuration and never typed here, so a key that moves is a red case rather than a
+  # number this case keeps a second copy of.
+  bound=$(sed -n 's/^LOOP_WORKER_PROMPT_MAX_BYTES=\([0-9][0-9]*\)$/\1/p' "$LOOP_ENGINE/loop.conf" | tail -1)
+  [ -n "$bound" ] ||
+    fail "loop.conf records no LOOP_WORKER_PROMPT_MAX_BYTES — the size every turn of an item re-sends has no bound to be read against"
+  run_one_item "$p" "$d" --review off >/dev/null || fail "the run failed"
+  prompt="$p/.pi/issue-loop/items/21/worker-prompt.md"
+  [ -f "$prompt" ] || fail "the worker prompt was not rendered"
+  bytes=$(stat -c %s "$prompt")
+  [ "$bytes" -le "$bound" ] ||
+    fail "the composed worker prompt is $bytes B, over the recorded bound of $bound B (LOOP_WORKER_PROMPT_MAX_BYTES), and every turn of the item re-sends it"
+  # What the prompt does not carry is one file it names, rendered beside it: a turn re-reads the prompt alone, and the
+  # long form is consulted once, when the question arises (issue #1082).
+  reference="$p/.pi/issue-loop/items/21/worker-reference.md"
+  [ -f "$reference" ] || fail "no reference file was rendered beside the worker prompt"
+  assert_contains "$(cat "$prompt")" "$reference" "the prompt names the file that carries what it does not"
+  # …and the move is a move: each block the prompt used to carry whole is still stated in the file it names, so no rule
+  # the child must obey is stated in neither file.
+  local heading
+  for heading in '## Where the project' '## What your own shell and tools refuse' '## One call per measure
+[LOOP-TRIMMED: ctx_shell returned 3287 characters; the first 2000 are shown — read the rest in ranges (ctx_read mode="lines:N-M")]
+
+-rw-r--r-- 1 tim tim 9095415 15:15 base-red.log
+98510
+58541:run#theWorkerPromptFitsItsBudget| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261125-173518')
+58542:run#theWorkerPromptFitsItsBudget| HEAD ist jetzt bei eec126a init
+58547:run#theWorkerPromptFitsItsBudget| stub gh: recorded `gh issue edit`
+58553:run#theWorkerPromptFitsItsBudget| HEAD ist jetzt bei 5ffdb92 fix: an-eligible-bug-whose-cited-path-still-e (#21) — archive with its evidence
+58554:run#theWorkerPromptFitsItsBudget| Branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e entfernt (war 5ffdb92).
+58555:run#theWorkerPromptFitsItsBudget| released: branch fix/issue-21-an-eligible-bug-whose-cited-path-still-e removed (its work is in the base)
+58558:run#theWorkerPromptFitsItsBudget| stub gh: recorded `gh issue edit`
+58563:run#theWorkerPromptFitsItsBudget| stub gh: recorded `gh issue edit`
+58564:run#theWorkerPromptFitsItsBudget| closed #21 (completed)
+58566:run#theWorkerPromptFitsItsBudget|   landing #21 5ffdb92bf7eeab477ff4809ae5a67d81aa09792e: unscored — the pipeline runs of this commit could not be read
+
+run#theWorkerPromptFitsItsBudget|   landing #21 5ffdb92bf7eeab477ff4809ae5a67d81aa09792e: unscored — the pipeline runs of this commit could not be read
+run#noGateStillRuns| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#noGateStillRuns|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+run#theWorkerPromptFitsItsBudget| pre-screen: 1 eligible, 0 excluded — gates 2-5 stay the worker's (design D6)
+run#theWorkerPromptFitsItsBudget|   #21 [bug/car] rank 1 — §21 An eligible bug whose cited path still exists
+PASS run#aSkipPrintsTheReasonTheChildGave
+run#noGateStillRuns| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+PASS run#noGateStillRuns
+run#theWorkerPromptFitsItsBudget| worktree: no published main could be fetched — the sweep compares against the base the run recorded
+run#mayCloseNoLeavesTheIssueOpen| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261125-173542')
+run#mayCloseNoLeavesTheIssueOpen| HEAD ist jetzt bei 66986eb init
+PASS run#reviewRoundsCapAtTwo
+run#mayCloseNoLeavesTheIssueOpen| stub gh: recorded `gh issue edit`
+PASS run#aZeroBlockingRefusalClosesWithItsNotes
+run#metricsRecordedPerItem| Bereite Arbeitsverzeichnis vor (neuer Branch 'loop-20261125-173548')
+=== gate FAIL list ===
+1038:FAIL run#aHupEndedRunRecordsItsStopAndUnpicksItsItem
+3321:FAIL notes#aCaseThatWasRed
+3328:FAIL gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt
+3822:FAIL adapter#theResultBoundExemptsGateEvidence
+4678:FAIL notes#aCaseThatWasRed
+4685:FAIL gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt
+5180:FAIL adapter#theResultBoundExemptsGateEvidence
+6071:FAIL notes#aCaseThatWasRed
+6078:FAIL gate#theBaseStateIsMeasuredWhenTheGateFirstNeedsIt
+6567:FAIL adapter#theResultBoundExemptsGateEvidence
+
+green-on-change.log
+loop-selftest.log
+red-on-HEAD.log
+tooling-suite.log
+===
+continuation-resume.log
+events.jsonl
+events.jsonl.gate-runs
+gate.log
+green-on-change.log
+leftover-from-killed-run.patch
+loop-selftest.log
+red-on-HEAD.log
+scratch
+tooling-suite.log
+tool-result-ledger.tsv
+tool-result-trims.log
+worker-continuation-report.md
+worker-prompt-continuation.md
+worker-prompt.md
+worker-reference.md
+worker-report.md
+work-package.md
+
+LOOP-GATE: tests=1082 failures=1 errors=0 (tools/loop/tests/loop-selftest.sh --from-git 3991fbea11459d8d343222b5956f1a41c316dfdb 581s, bash tools/loop/tests/loop-mutations.sh --check 17s, tools/issues/tests/issue-tooling-selftest.sh 591s, tools/issues/check-metadata.sh 3s, tools/issues/tests/metadata-mutations.sh --list 1s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 1s, tools/tests/check-portability-selftest.sh 33s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — failing: tools/loop/tests/loop-selftest.sh --from-git 3991fbea11459d8d343222b5956f1a41c316dfdb — base-red: tools/loop/tests/loop-selftest.sh --from-git 3991fbea11459d8d343222b5956f1a41c316dfdb:2, tools/check-openspec-hygiene.sh:1
+
+Successfully wrote to /home/tim/projects/NaviVeylin/.pi/issue-loop/items/1095/worker-continuation-report.md
+Successfully replaced 1 block(s) in /home/tim/projects/NaviVeylin/.pi/issue-loop/items/1095/worker-continuation-report.md.
+ M openspec/specs/issue-backlog/spec.md
+ M tools/issues/lib.sh
+ M tools/issues/list.sh
+ M tools/issues/tests/issue-tooling-cases.sh
+ M tools/loop/prescreen.sh
+ M tools/loop/run.sh
+?? openspec/changes/archive/2026-11-27-fix-list-reads-the-counted-set/design.md
+?? openspec/changes/archive/2026-11-27-fix-list-reads-the-counted-set/evidence/green-on-change.log
+?? openspec/changes/archive/2026-11-27-fix-list-reads-the-counted-set/evidence/loop-selftest.log
+?? openspec/changes/archive/2026-11-27-fix-list-reads-the-counted-set/evidence/red-on-HEAD.log
+?? openspec/changes/archive/2026-11-27-fix-list-reads-the-counted-set/evidence/tooling-suite.log
+?? openspec/changes/archive/2026-11-27-fix-list-reads-the-counted-set/proposal.md
+?? openspec/changes/archive/2026-11-27-fix-list-reads-the-counted-set/specs/issue-backlog/spec.md
+?? openspec/changes/archive/2026-11-27-fix-list-reads-the-counted-set/tasks.md
+---
+LOOK: 1 matches in 1 files of /home/tim/projects/NaviVeylin/.pi/worktrees/loop/guidelines/Backlog.md for '^## 6\.'
+LOOK-FILE: guidelines/Backlog.md 1
+guidelines/Backlog.md:326:## 6. How an item becomes work
+
+
+# the gate child's own closing answer
+Change complete in `.pi/worktrees/loop` (uncommitted): `lib.sh` whole-set reader, `list.sh` reads the counted set, prescreen/run pins dropped, one new tooling case (red→green), change archived with evidence, evidence-check PASS. Gate ran once, detached, polled to its `LOOP-GATE:` line.
+
+Two things outside this item, both named in the report rather than repaired: the two quota cases are base-red on this host (`LOOP_QUOTA_CMD=` set-but-empty), and `run#theWorkerPromptFitsItsBudget` is 12 B over its bound only in a parallel run (green alone).
+
+LOOP-CHANGE: fix-list-reads-the-counted-set
+LOOP-ROOT-CAUSE: one constant (`limit=400`) was at once the size of `tools/issues/list.sh`'s read and the set it claimed to select from, so both reads answered from the newest page and a marker below it became the exit-4 "this entry does not exist" answer.
+LOOP-ROUTE: guidelines/Backlog.md §6
+LOOP-RED-TEST: list#readsTheWholeSetNotTheNewestPage fails on HEAD — this shell suite writes no JUnit XML; the numbers are its own summary `list --id 1 failed on a tracker larger than the newest page`, `list: no issue carries <!-- nvid: 1 -->`, `FAIL list#readsTheWholeSetNotTheNewestPage`, exit 1 (2026-11-27T14:29:54Z, evidence/red-on-HEAD.log)
+LOOP-GATE: tests=1082 failures=1 errors=0 (tools/loop/tests/loop-selftest.sh --from-git 3991fbea11459d8d343222b5956f1a41c316dfdb 581s, bash tools/loop/tests/loop-mutations.sh --check 17s, tools/issues/tests/issue-tooling-selftest.sh 591s, tools/issues/check-metadata.sh 3s, tools/issues/tests/metadata-mutations.sh --list 1s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 1s, tools/tests/check-portability-selftest.sh 33s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — failing: tools/loop/tests/loop-selftest.sh --from-git 3991fbea11459d8d343222b5956f1a41c316dfdb — base-red: tools/loop/tests/loop-selftest.sh --from-git 3991fbea11459d8d343222b5956f1a41c316dfdb:2, tools/check-openspec-hygiene.sh:1
+ng).
+- The change is archived as `openspec/changes/archive/2026-11-27-fix-list-reads-the-counted-set` with its delta
+  merged into `openspec/specs/issue-backlog/spec.md` (+1 requirement).
+
+## The gate, and the one failure it left
+
+The gate ran once, detached and polled. Its own line is copied below verbatim. It reports `failures=1` after
+subtracting the base reds it measured, and the one it does not subtract is `run#theWorkerPromptFitsItsBudget`:
+
+```
+LOOP-PROMPT: the worker prompt is 29012 B, over the recorded bound 29000 B (LOOP_WORKER_PROMPT_MAX_BYTES)
+FAIL run#theWorkerPromptFitsItsBudget
+```
+
+That case is not in this delta's reach and I did not touch the prompts: it passes when run alone on this tree
+(`PASS run#theWorkerPromptFitsItsBudget`), and `loop.conf`'s own note says the composed figure moves with the
+throwaway project's root depth. The overshoot is 12 B — the width of the parallel runner's `cases/<n>` index digit
+times the paths the prompt carries — so it is a latent margin defect in the bound, not a prompt that grew here.
+
+NOTE: `LOOP_WORKER_PROMPT_MAX_BYTES=29000` has no margin for a case whose throwaway root carries a two-digit case
+index; `run#theWorkerPromptFitsItsBudget` is green alone and red in a parallel run on a tree it does not measure.
+This is outside #1095 and I did not repair it — a bound raised to fit a path length would hide the next grown
+paragraph, which is what the bound exists to catch (issue #1082).
+
+LOOP-CHANGE: fix-list-reads-the-counted-set
+LOOP-ROOT-CAUSE: one constant (`limit=400`) was at once the size of `tools/issues/list.sh`'s read and the set it claimed to select from, so both reads answered from the newest page and a marker below it became the exit-4 "this entry does not exist" answer.
+LOOP-ROUTE: guidelines/Backlog.md §6
+LOOP-RED-TEST: list#readsTheWholeSetNotTheNewestPage fails on HEAD — this shell suite writes no JUnit XML; the numbers are its own summary `list --id 1 failed on a tracker larger than the newest page`, `list: no issue carries <!-- nvid: 1 -->`, `FAIL list#readsTheWholeSetNotTheNewestPage`, exit 1 (2026-11-27T14:29:54Z, evidence/red-on-HEAD.log)
+LOOP-GATE: tests=1082 failures=1 errors=0 (tools/loop/tests/loop-selftest.sh --from-git 3991fbea11459d8d343222b5956f1a41c316dfdb 581s, bash tools/loop/tests/loop-mutations.sh --check 17s, tools/issues/tests/issue-tooling-selftest.sh 591s, tools/issues/check-metadata.sh 3s, tools/issues/tests/metadata-mutations.sh --list 1s, bash tools/gen-feature-list.sh --check-classification 3s, tools/check-doc-values.sh 0s, tools/tests/check-doc-values-selftest.sh 0s, tools/check-doc-routes.sh 1s, tools/tests/check-doc-routes-selftest.sh 8s, tools/mutate.sh --mutations tools/tests/check-doc-routes-mutations.json --list 0s, tools/check-todo-references.sh 1s, tools/check-openspec-hygiene.sh 0s, tools/tests/check-openspec-hygiene-selftest.sh 1s, tools/check-portability.sh 1s, tools/tests/check-portability-selftest.sh 33s, tools/tests/mutate-selftest.sh 1s, tools/mutate.sh --mutations tools/tests/portability-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/status-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/create-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/close-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/duplicates-mutations.json --list 0s, tools/mutate.sh --mutations tools/issues/tests/decision-question-mutations.json --list 0s) — failing: tools/loop/tests/loop-selftest.sh --from-git 3991fbea11459d8d343222b5956f1a41c316dfdb — base-red: tools/loop/tests/loop-selftest.sh --from-git 3991fbea11459d8d343222b5956f1a41c316dfdb:2, tools/check-openspec-hygiene.sh:1

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/sensors/tests/sensor-selftest.sh" tests="99" failures="0" errors="0" time="132" run="2713492">
+  <system-out>PASS run#aFilingCarriesTheRowsType PASS run#aRecordIssueCarriesTheRowsType sensor-selftest: all 99 cases passed (JDK 21, offline, no token)</system-out>
+</testsuite>

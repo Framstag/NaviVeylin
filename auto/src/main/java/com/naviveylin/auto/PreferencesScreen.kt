@@ -17,10 +17,14 @@ import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.launch
 
 /**
- * Android Auto preferences screen: lists the shared navigation settings with
- * their current values and lets the driver toggle them. Changes are persisted
- * through [AutoSettingsProvider] to the same settings storage the phone app
- * uses.
+ * Android Auto preferences root (spec: `auto/preferences` — "The car's preferences are grouped
+ * into sub-screens"): the settings topics, each opening a [PreferencesTopicScreen] with its rows.
+ * The root lists no setting row, so a driver never scrolls one long mixed list, and a topic is one
+ * row list per screen (design D6).
+ *
+ * Changes are persisted through [AutoSettingsProvider] to the same settings storage the phone app
+ * uses, and the topic screens read the same storage, so a value picked here and a value picked on
+ * the phone are the same value.
  *
  * Uses [ListTemplate] (not [PaneTemplate]): PaneTemplate rows do not support
  * click listeners (car-app constraint `ROW_CONSTRAINTS_PANE`). ListTemplate is
@@ -73,10 +77,9 @@ class PreferencesScreen private constructor(
     init {
         enableBackNavigation()
         loadSettings()
-        // Re-read on re-visibility: a value changed in a pushed picker must
-        // appear on the rows when the picker pops back (spec: auto/preferences
-        // — "Re-read on re-visibility", auto-map-layout — "Anchor settings
-        // reflect the persisted value on re-visibility"), not a stale snapshot.
+        // Re-read on re-visibility: the topics depend on the settings document, and a value changed
+        // on a topic screen must not leave the root showing a stale set of topics
+        // (spec: auto/preferences — "Screen reflects saved value").
         observeSettingsLifecycle(scope, guard, onReVisible = ::loadSettings)
     }
 
@@ -121,39 +124,11 @@ class PreferencesScreen private constructor(
                 .build()
         } else {
             val builder = ItemList.Builder()
-            PreferencesScreenMapper.rows(current).forEach { row ->
+            PreferencesScreenMapper.topics(current, stylesLoader()).forEach { topic ->
                 builder.addItem(
                     Row.Builder()
-                        .setTitle(row.title)
-                        .addText(row.valueText)
-                        .setOnClickListener {
-                            // The overspeed delta row opens the value picker
-                            // (0-30) instead of toggling (spec: auto-map-layout
-                            // — Overspeed delta presented as a value picker);
-                            // the vehicle position rows open the 5×3 anchor
-                            // picker for their mode.
-                            if (row.key == PreferencesScreenMapper.KEY_OVERSPEED_DELTA) {
-                                armScreenPush(carContext, scope, "OverspeedDeltaPickerScreen") {
-                                    OverspeedDeltaPickerScreen(carContext, settingsProvider)
-                                }
-                            } else if (row.key == PreferencesScreenMapper.KEY_ROUTING_ANCHOR) {
-                                armScreenPush(carContext, scope, "VehicleAnchorPickerScreen (routing)") {
-                                    VehicleAnchorPickerScreen(
-                                        carContext, settingsProvider,
-                                        VehicleAnchorPickerScreen.Mode.ROUTING
-                                    )
-                                }
-                            } else if (row.key == PreferencesScreenMapper.KEY_FREE_DRIVING_ANCHOR) {
-                                armScreenPush(carContext, scope, "VehicleAnchorPickerScreen (free driving)") {
-                                    VehicleAnchorPickerScreen(
-                                        carContext, settingsProvider,
-                                        VehicleAnchorPickerScreen.Mode.FREE_DRIVING
-                                    )
-                                }
-                            } else {
-                                onToggle(row.key)
-                            }
-                        }
+                        .setTitle(carContext.getString(topic.titleRes))
+                        .setOnClickListener { onOpenTopic(topic) }
                         .build()
                 )
             }
@@ -171,20 +146,16 @@ class PreferencesScreen private constructor(
             .build()
     }
 
-    internal fun onToggle(key: String) {
-        val current = settings ?: return
-        val updated = PreferencesScreenMapper.toggle(current, key, stylesLoader())
-        settings = updated
-        scope.launch {
-            settingsProvider.save(updated)
-            // Notify the session so the car map re-resolves dark presentation
-            // (spec: auto/preferences — dark mode preference applies to car
-            // rendering, "Preference change applies live").
-            if (key == PreferencesScreenMapper.KEY_DARK_MODE) {
-                onDarkModeChanged(updated.darkMode)
-            }
-            // Guarded refresh: a host failure here must not lose the toggle.
-            guard.refreshContent()
+    /** Open [topic]'s rows; back from there returns to this list, not to the map. */
+    internal fun onOpenTopic(topic: PreferenceTopic) {
+        armScreenPush(carContext, scope, "PreferencesTopicScreen (${topic.name})") {
+            PreferencesTopicScreen(
+                carContext = carContext,
+                topic = topic,
+                settingsProvider = settingsProvider,
+                stylesLoader = stylesLoader,
+                onDarkModeChanged = onDarkModeChanged
+            )
         }
     }
 

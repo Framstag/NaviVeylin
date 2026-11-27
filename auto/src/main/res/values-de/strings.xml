@@ -22,6 +22,13 @@
     <string name="address_book">Adressbuch</string>
     <string name="search_contacts">Kontakte mit Adressen suchen</string>
     <string name="preferences">Einstellungen</string>
+    <!-- The three settings topics the car's Preferences root lists. The names are the phone's topic
+         names (spec: auto/preferences — the car uses the same topic names as the phone). -->
+    <string name="settings_topic_map">Karte</string>
+    <string name="settings_topic_navigation">Navigation &amp; Route</string>
+    <string name="settings_topic_hints">Hinweise &amp; Sprache</string>
+    <!-- Marks the value in force on a finite-value row's options screen (spec: auto/preferences). -->
+    <string name="choice_current">(aktuell)</string>
     <string name="overspeed_warning">Geschwindigkeitswarnung</string>
     <string name="vehicle_position_routing">Fahrzeugposition (Navigation)</string>
     <string name="vehicle_position_free_driving">Fahrzeugposition (freies Fahren)</string>

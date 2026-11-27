@@ -69,6 +69,16 @@ Verified against car-app 1.7.0 (`androidx.car.app`):
     reachable. No projection host was available in that session, so a projected host's number is
     unrecorded.
 
+- **Rule: the car's preferences are two levels, one list each.** `PreferencesScreen` lists only settings topics —
+  Karte, Navigation & Route, Hinweise & Sprache — and a topic opens its own rows (`PreferencesTopicScreen`), so a
+  driver never scrolls one mixed list of every setting (spec `auto/preferences` — "The car's preferences are grouped
+  into sub-screens"; design D6 of `settings-taxonomy-and-surface`). No individual setting row appears on the root,
+  back from a topic leaves one level rather than the surface, and the auto module declares the car's own rows —
+  `PreferencesScreenMapper.rows` — so a phone-only row has no declaration to appear through (spec:
+  `auto/preferences` — "Phone-only rows stay absent"). A row whose value is a finite set (dark mode, render mode, map style) opens its
+  permitted values as a list that marks the value in force (`PreferenceChoiceScreen`, the pattern the anchor
+  pickers already use) — a tap chooses, it never cycles; a boolean row stays tap-to-toggle (spec:
+  `auto/preferences` — "A value is chosen, never only cycled").
 - **Rule: the real car-app API surface is checked before a car screen is written.** Check the real car-app API surface before writing a car screen or screen test (§40.29): getter names,
   the resolved lifecycle version, and no `Lifecycle.getObservers()`. Drive the lifecycle through
   `dispatchLifecycleEvent` in the order a host would — ON_CREATE + ON_START before ON_DESTROY, never straight
@@ -183,8 +193,8 @@ placeholder MUST use [`SettingsLoadGuard`]:
   picker must never drop the write (spec: `auto-map-layout` — "Anchor
   selection survives immediate dismissal").
 - **Rule: `onDestroy` cancels the screen coroutine scope.** `onDestroy` cancels the screen coroutine scope.
-- Applies to `PreferencesScreen`, `VehicleAnchorPickerScreen`,
-  `OverspeedDeltaPickerScreen`.
+- Applies to `PreferencesScreen`, `PreferencesTopicScreen`, `PreferenceChoiceScreen`,
+  `VehicleAnchorPickerScreen`, `OverspeedDeltaPickerScreen`.
 
 ## 3c. Car wait notices (a wait the driver can see and leave)
 

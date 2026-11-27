@@ -2,13 +2,9 @@ package com.naviveylin.auto
 
 import androidx.car.app.CarContext
 import androidx.car.app.model.Row
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleRegistry
 import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.AutoSettingsProvider
-import com.naviveylin.core.VehicleAnchorPosition
 import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -22,20 +18,20 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Tests for [PreferencesScreen]: template structure and the tap-to-toggle →
- * save flow. The provider is injected via the primary constructor so no Hilt
- * entry point is resolved in tests.
+ * Tests for [PreferencesScreen]: the root is the topic list, never a setting row, and it carries
+ * the render recovery the car's settings screens owe (spec: `auto/preferences` — "The car's
+ * preferences are grouped into sub-screens", "Settings screens never wedge on a loading
+ * placeholder"). The provider is injected via the primary constructor so no Hilt entry point is
+ * resolved in tests.
  *
- * Row content (titles/values) is covered by [PreferencesScreenMapperTest];
- * the row → [PreferencesScreen.onToggle] wiring is a one-line lambda.
+ * The rows of a topic and the options of a value are covered by [PreferencesTopicScreenTest],
+ * [PreferenceChoiceScreenTest] and [PreferencesScreenMapperTest].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -66,9 +62,33 @@ class PreferencesScreenTest {
 
         val template = screen.onGetTemplate()
 
-        // All eleven car-relevant preferences on the single list (nine base +
-        // the two vehicle-position anchors).
-        assertEquals(13, template.singleList!!.items.size)
+        // The root lists the topics that hold a car-usable row — one row per topic.
+        assertEquals(3, template.singleList!!.items.size)
+    }
+
+    /**
+     * Spec case: The root lists topics and no setting row.
+     */
+    @Test
+    fun theRootListsTopicsAndNoSettingRow() = runTest(testDispatcher) {
+        coEvery { provider.load() } returns AutoSettings()
+
+        val screen = PreferencesScreen(carContext, provider)
+        advanceUntilIdle()
+
+        val titles = screen.onGetTemplate().singleList!!.items.map { (it as Row).title.toString() }
+
+        assertEquals(
+            listOf("Karte", "Navigation & Route", "Hinweise & Sprache"),
+            titles
+        )
+        // No setting row is on the root: not one of the car's own row titles, and no current value
+        // text beside a topic entry (a topic entry names a group, not a value).
+        val settingTitles = PreferencesScreenMapper.rows(AutoSettings()).map { it.title }
+        assertEquals(0, titles.count { it in settingTitles })
+        screen.onGetTemplate().singleList!!.items.forEach { item ->
+            assertEquals(0, (item as Row).texts.orEmpty().size)
+        }
     }
 
     @Test
@@ -83,7 +103,7 @@ class PreferencesScreenTest {
 
         advanceTimeBy(400)
         advanceUntilIdle()
-        assertEquals(13, screen.onGetTemplate().singleList!!.items.size)
+        assertEquals(3, screen.onGetTemplate().singleList!!.items.size)
     }
 
     @Test
@@ -113,7 +133,7 @@ class PreferencesScreenTest {
         screen.onRetry()
         advanceUntilIdle()
 
-        assertEquals(13, screen.onGetTemplate().singleList!!.items.size)
+        assertEquals(3, screen.onGetTemplate().singleList!!.items.size)
     }
 
     @Test
@@ -138,104 +158,6 @@ class PreferencesScreenTest {
 
         // The load finally completes (t=10000): content comes back, error clears.
         advanceUntilIdle()
-        assertEquals(13, screen.onGetTemplate().singleList!!.items.size)
-    }
-
-    @Test
-    fun onToggleSavesFlippedValue() = runTest(testDispatcher) {
-        coEvery { provider.load() } returns AutoSettings(followMode = false)
-        coEvery { provider.save(any()) } returns Unit
-
-        val screen = PreferencesScreen(carContext, provider)
-        advanceUntilIdle()
-        screen.onToggle("followMode")
-        advanceUntilIdle()
-
-        coVerify { provider.save(AutoSettings(followMode = true)) }
-    }
-
-    @Test
-    fun onToggleStyleSheetCyclesAndSaves() = runTest(testDispatcher) {
-        coEvery { provider.load() } returns AutoSettings(styleSheet = "standard")
-        coEvery { provider.save(any()) } returns Unit
-
-        val screen = PreferencesScreen(carContext, provider)
-        advanceUntilIdle()
-        screen.onToggle("styleSheet")
-        advanceUntilIdle()
-
-        // DEFAULT_STYLES is sorted: standard → winter-sports.
-        coVerify { provider.save(AutoSettings(styleSheet = "winter-sports")) }
-    }
-
-    @Test
-    fun darkModeToggleReportsNewValueViaCallback() = runTest(testDispatcher) {
-        coEvery { provider.load() } returns AutoSettings(darkMode = "AUTOMATIC")
-        coEvery { provider.save(any()) } returns Unit
-        val reported = mutableListOf<String>()
-
-        val screen = PreferencesScreen(
-            carContext,
-            provider,
-            onDarkModeChanged = { reported.add(it) }
-        )
-        advanceUntilIdle()
-
-        // AUTOMATIC -> ON (nextDarkMode cycle direction).
-        screen.onToggle(PreferencesScreenMapper.KEY_DARK_MODE)
-        advanceUntilIdle()
-
-        assertEquals(listOf("ON"), reported)
-        coVerify { provider.save(AutoSettings(darkMode = "ON")) }
-    }
-
-    @Test
-    fun nonDarkModeToggleDoesNotReport() = runTest(testDispatcher) {
-        coEvery { provider.load() } returns AutoSettings()
-        coEvery { provider.save(any()) } returns Unit
-        val reported = mutableListOf<String>()
-
-        val screen = PreferencesScreen(
-            carContext,
-            provider,
-            onDarkModeChanged = { reported.add(it) }
-        )
-        advanceUntilIdle()
-        screen.onToggle("followMode")
-        advanceUntilIdle()
-
-        assertTrue(reported.isEmpty())
-    }
-
-    @Test
-    fun reVisibilityReReadsSettingsAndShowsNewAnchor() = runTest(testDispatcher) {
-        coEvery { provider.load() } returnsMany listOf(
-            AutoSettings(routingAnchorId = VehicleAnchorPosition.CENTER.id),
-            AutoSettings(routingAnchorId = VehicleAnchorPosition.BOTTOM_RIGHT.id)
-        )
-
-        val screen = PreferencesScreen(carContext, provider)
-        advanceUntilIdle()
-        // First render: the persisted value at the first load.
-        assertTrue(vehiclePositionNavigationValue(screen).contains("Center"))
-        assertFalse(vehiclePositionNavigationValue(screen).contains("Bottom right"))
-
-        // Re-visibility (picker pop-back): the screen re-reads the persisted
-        // settings and the row shows the NEW anchor, not the first-load
-        // snapshot (spec: auto/preferences — "Re-read on re-visibility",
-        // auto-map-layout — "Anchor settings reflect the persisted value on
-        // re-visibility").
-        (screen.lifecycle as LifecycleRegistry).currentState = Lifecycle.State.STARTED
-        advanceUntilIdle()
-        assertTrue(vehiclePositionNavigationValue(screen).contains("Bottom right"))
-
-        (screen.lifecycle as LifecycleRegistry).currentState = Lifecycle.State.DESTROYED
-    }
-
-    /** The value text of the "Vehicle position (navigation)" row. */
-    private fun vehiclePositionNavigationValue(screen: PreferencesScreen): String {
-        val rows = screen.onGetTemplate().singleList!!.items
-        val row = rows.first { (it as Row).title.toString() == "Vehicle position (navigation)" } as Row
-        return row.texts?.joinToString(",") { it.toString() } ?: ""
+        assertEquals(3, screen.onGetTemplate().singleList!!.items.size)
     }
 }

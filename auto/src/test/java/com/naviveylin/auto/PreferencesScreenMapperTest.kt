@@ -3,9 +3,13 @@ package com.naviveylin.auto
 import com.naviveylin.core.AutoSettings
 import com.naviveylin.core.VehicleAnchorPosition
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PreferencesScreenMapperTest {
+
+    private val styles = listOf("cycle", "motorways", "standard", "winter-sports")
 
     @Test
     fun rows_containsAllCarRelevantSettings() {
@@ -13,7 +17,7 @@ class PreferencesScreenMapperTest {
 
         assertEquals(13, rows.size)
         assertEquals(
-            listOf(
+            setOf(
                 "followMode",
                 "autoZoomEnabled",
                 "freeFormNorthUp",
@@ -28,8 +32,145 @@ class PreferencesScreenMapperTest {
                 "freeDrivingAnchor",
                 "styleSheet"
             ),
-            rows.map { it.key }
+            rows.map { it.key }.toSet()
         )
+    }
+
+    // --- Grouped sub-screens (spec: auto/preferences — The car's preferences are grouped into sub-screens) ---
+
+    /**
+     * Spec case: The root lists topics and no setting row.
+     */
+    @Test
+    fun theRootListsTopicsAndNoSettingRow() {
+        val topics = PreferencesScreenMapper.topics(AutoSettings())
+
+        // The three topics whose rows the car carries, in declaration order — the phone's topic
+        // names and the phone's order (spec: auto/preferences — "The root lists topics").
+        assertEquals(
+            listOf(
+                PreferenceTopic.MAP,
+                PreferenceTopic.NAVIGATION_AND_ROUTE,
+                PreferenceTopic.HINTS_AND_LANGUAGE
+            ),
+            topics
+        )
+        // Every row the mapper declares belongs to one of those topics, so the root is the topic
+        // list alone: a driver reaches a setting row only through a topic screen.
+        assertEquals(
+            13,
+            PreferencesScreenMapper.rows(AutoSettings()).count { it.topic in topics }
+        )
+    }
+
+    /**
+     * Spec case: A topic opens its rows.
+     */
+    @Test
+    fun aTopicListsItsCarUsableRows() {
+        val map = PreferencesScreenMapper.rowsFor(PreferenceTopic.MAP, AutoSettings())
+        val navigation = PreferencesScreenMapper.rowsFor(PreferenceTopic.NAVIGATION_AND_ROUTE, AutoSettings())
+        val hints = PreferencesScreenMapper.rowsFor(PreferenceTopic.HINTS_AND_LANGUAGE, AutoSettings())
+
+        assertEquals(
+            listOf("darkMode", "renderMode", "styleSheet", "freeFormNorthUp"),
+            map.map { it.key }
+        )
+        assertEquals(
+            listOf(
+                "followMode", "autoZoomEnabled", "navNorthUp",
+                "overspeedWarningDeltaKmh", "routingAnchor", "freeDrivingAnchor"
+            ),
+            navigation.map { it.key }
+        )
+        assertEquals(
+            listOf("laneHintsEnabled", "voiceGuidanceEnabled", "announceGpsState"),
+            hints.map { it.key }
+        )
+        // The three lists are disjoint and together hold every row: no row is shown twice and none
+        // is dropped between the levels.
+        assertEquals(13, (map + navigation + hints).size)
+        // Every topic keeps one row list under the ten rows a driver should scroll (design D6).
+        assertTrue(map.size <= 10 && navigation.size <= 10 && hints.size <= 10)
+    }
+
+    @Test
+    fun everyListedTopicHasRows() {
+        PreferencesScreenMapper.topics(AutoSettings()).forEach { topic ->
+            assertTrue(
+                "topic $topic is listed only with rows",
+                PreferencesScreenMapper.rowsFor(topic, AutoSettings()).isNotEmpty()
+            )
+        }
+    }
+
+    @Test
+    fun everyRowCarriesItsOwnTopic() {
+        val rows = PreferencesScreenMapper.rows(AutoSettings())
+        PreferencesScreenMapper.topics(AutoSettings()).forEach { topic ->
+            assertTrue(
+                PreferencesScreenMapper.rowsFor(topic, AutoSettings()).all { it.topic == topic }
+            )
+        }
+        assertEquals(13, rows.count { it.topic in PreferenceTopic.entries })
+    }
+
+    // --- A finite value set is presented as options (spec: auto/preferences — A value is chosen, never only cycled) ---
+
+    /**
+     * Spec case: A value is chosen, never only cycled.
+     */
+    @Test
+    fun aChoiceRowOpensItsOptions() {
+        val rows = PreferencesScreenMapper.rows(AutoSettings(darkMode = "OFF"), styles).associateBy { it.key }
+
+        val darkMode = rows.getValue(PreferencesScreenMapper.KEY_DARK_MODE)
+        assertEquals(PreferenceControl.CHOICE, darkMode.control)
+        assertEquals(listOf("ON", "AUTOMATIC", "OFF"), darkMode.choices.map { it.value })
+        assertEquals(listOf("On", "Automatic", "Off"), darkMode.choices.map { it.label })
+        assertEquals("the value in force is marked", "OFF", darkMode.currentValue)
+
+        val renderMode = rows.getValue("renderMode")
+        assertEquals(PreferenceControl.CHOICE, renderMode.control)
+        assertEquals(listOf("TILES", "DIRECT"), renderMode.choices.map { it.value })
+
+        val style = rows.getValue("styleSheet")
+        assertEquals(PreferenceControl.CHOICE, style.control)
+        assertEquals(styles, style.choices.map { it.value })
+        // A style carries its own name: its label is its key (spec: map-styles).
+        assertEquals(styles, style.choices.map { it.label })
+    }
+
+    @Test
+    fun aBooleanRowStaysASwitch() {
+        val rows = PreferencesScreenMapper.rows(AutoSettings()).associateBy { it.key }
+        listOf("followMode", "autoZoomEnabled", "laneHintsEnabled", "voiceGuidanceEnabled", "announceGpsState")
+            .forEach { key ->
+                assertEquals(key, PreferenceControl.SWITCH, rows.getValue(key).control)
+                assertTrue(key, rows.getValue(key).choices.isEmpty())
+            }
+    }
+
+    @Test
+    fun theDedicatedPickersKeepTheirOwnScreens() {
+        val rows = PreferencesScreenMapper.rows(AutoSettings()).associateBy { it.key }
+        listOf(
+            PreferencesScreenMapper.KEY_OVERSPEED_DELTA,
+            PreferencesScreenMapper.KEY_ROUTING_ANCHOR,
+            PreferencesScreenMapper.KEY_FREE_DRIVING_ANCHOR
+        ).forEach { key ->
+            assertEquals(key, PreferenceControl.PICKER, rows.getValue(key).control)
+        }
+    }
+
+    @Test
+    fun aStyleRowCarriesTheCurrentStyleEvenWhenTheLiveListDropsIt() {
+        val row = PreferencesScreenMapper
+            .rows(AutoSettings(styleSheet = "stale"), listOf("cycle", "standard"))
+            .first { it.key == "styleSheet" }
+
+        assertTrue("the value in force is always an option", row.choices.any { it.value == "stale" })
+        assertEquals("stale", row.currentValue)
     }
 
     // --- The announcement switches (spec: auto/preferences — The car offers the announcement switches) ---
@@ -154,37 +295,12 @@ class PreferencesScreenMapperTest {
     }
 
     @Test
-    fun toggle_cyclesDarkMode() {
-        assertEquals("OFF", PreferencesScreenMapper.toggle(AutoSettings(darkMode = "ON"), "darkMode").darkMode)
-        assertEquals("AUTOMATIC", PreferencesScreenMapper.toggle(AutoSettings(darkMode = "OFF"), "darkMode").darkMode)
-        assertEquals("ON", PreferencesScreenMapper.toggle(AutoSettings(darkMode = "AUTOMATIC"), "darkMode").darkMode)
-    }
+    fun toggle_leavesAChoiceRowUnchanged() {
+        val before = AutoSettings(darkMode = "ON", renderMode = "TILES", styleSheet = "standard")
 
-    @Test
-    fun toggle_cyclesRenderMode() {
-        assertEquals("DIRECT", PreferencesScreenMapper.toggle(AutoSettings(renderMode = "TILES"), "renderMode").renderMode)
-        assertEquals("TILES", PreferencesScreenMapper.toggle(AutoSettings(renderMode = "DIRECT"), "renderMode").renderMode)
-    }
-
-    @Test
-    fun toggle_cyclesMapStyle() {
-        val styles = listOf("cycle", "motorways", "standard", "winter-sports")
-        assertEquals("winter-sports", PreferencesScreenMapper.toggle(AutoSettings(styleSheet = "standard"), "styleSheet", styles).styleSheet)
-        assertEquals("cycle", PreferencesScreenMapper.toggle(AutoSettings(styleSheet = "winter-sports"), "styleSheet", styles).styleSheet)
-    }
-
-    @Test
-    fun toggle_mapStyleWrapsToFirstForUnknownCurrent() {
-        val styles = listOf("cycle", "standard")
-        assertEquals("cycle", PreferencesScreenMapper.toggle(AutoSettings(styleSheet = "stale"), "styleSheet", styles).styleSheet)
-    }
-
-    @Test
-    fun toggle_mapStyleKeepsCurrentWhenListEmpty() {
-        assertEquals(
-            "standard",
-            PreferencesScreenMapper.toggle(AutoSettings(styleSheet = "standard"), "styleSheet", emptyList()).styleSheet
-        )
+        assertEquals(before, PreferencesScreenMapper.toggle(before, PreferencesScreenMapper.KEY_DARK_MODE))
+        assertEquals(before, PreferencesScreenMapper.toggle(before, "renderMode"))
+        assertEquals(before, PreferencesScreenMapper.toggle(before, "styleSheet", styles))
     }
 
     @Test
@@ -192,5 +308,38 @@ class PreferencesScreenMapperTest {
         val settings = AutoSettings()
 
         assertEquals(settings, PreferencesScreenMapper.toggle(settings, "nope"))
+    }
+
+    // --- Choosing a value (spec: auto/preferences — "A value is chosen, never only cycled") ---
+
+    @Test
+    fun choose_setsTheExactValue() {
+        assertEquals("OFF", PreferencesScreenMapper.choose(AutoSettings(darkMode = "ON"), "darkMode", "OFF").darkMode)
+        assertEquals("ON", PreferencesScreenMapper.choose(AutoSettings(darkMode = "OFF"), "darkMode", "ON").darkMode)
+        assertEquals(
+            "DIRECT",
+            PreferencesScreenMapper.choose(AutoSettings(renderMode = "TILES"), "renderMode", "DIRECT").renderMode
+        )
+        assertEquals(
+            "winter-sports",
+            PreferencesScreenMapper.choose(AutoSettings(styleSheet = "standard"), "styleSheet", "winter-sports", styles)
+                .styleSheet
+        )
+        assertEquals(
+            "cycle",
+            PreferencesScreenMapper.choose(AutoSettings(styleSheet = "standard"), "styleSheet", "cycle", styles)
+                .styleSheet
+        )
+    }
+
+    @Test
+    fun choose_refusesAValueTheRowDoesNotOffer() {
+        val before = AutoSettings(darkMode = "ON", styleSheet = "standard", renderMode = "TILES")
+
+        assertEquals("an unknown dark mode", before, PreferencesScreenMapper.choose(before, "darkMode", "DIM"))
+        assertEquals("a style the device does not offer", before,
+            PreferencesScreenMapper.choose(before, "styleSheet", "gone", styles))
+        assertEquals("a switch's key", before, PreferencesScreenMapper.choose(before, "followMode", "on"))
+        assertEquals("an unknown key", before, PreferencesScreenMapper.choose(before, "nope", "ON"))
     }
 }

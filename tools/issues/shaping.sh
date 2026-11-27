@@ -13,7 +13,13 @@
 # comment is named as carrying no statement instead of being presented as a finding, and an empty inbox is not a
 # failure: the item is visible work a person owes, and there may be none.
 #
-# Exit: 0 ok (an empty queue is not a failure), 2 usage, 3 the profile declares no shaping role.
+# The set is counted before it is read: the label-scoped population is asked of the tracker, and the list is asked
+# for a window one larger than that count, so the window is the inbox's own size rather than a constant of this
+# tool (#1094). A read that comes back as full as the window is refused as `shaping-set-uncovered` rather than
+# printed as coverage of the set, and every listing names the counted set it was taken over.
+#
+# Exit: 0 ok (an empty queue is not a failure), 2 usage, 3 the profile declares no shaping role, or a read the
+# counted set overruns (`shaping-set-uncovered`).
 #
 # Usage: shaping.sh [--limit N] [--json] [--profile <path>]
 set -uo pipefail
@@ -23,14 +29,14 @@ here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 source "$here/lib.sh"
 
 profile_arg=""
-limit=400
+limit="" # the caller's own window, when it names one
 json=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
     --limit) need_value "$@"; limit="${2:-}"; shift 2 ;;
     --json) json=1; shift ;;
-    -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
     *) issues_die "shaping: unknown argument $1" ;;
   esac
 done
@@ -45,7 +51,42 @@ shaping_agent=$(jq -r '.roles.shapingAgent // empty' "$profile")
   issues_die "shaping: the profile's roles section declares no shapingAgent — this project has no shaping inbox"
 shaping_label="agent${separator}${shaping_agent}"
 
-issues=$(gh issue list --state all --limit "$limit" --json number,title,labels,comments,updatedAt,state)
+repo="$ISSUES_REPO"
+[ -n "$repo" ] ||
+  issues_die "shaping: the repository could not be resolved — the queue cannot count the set it reads"
+owner="${repo%%/*}"
+name="${repo#*/}"
+
+# The count first, then the read (#1094). A window this tool picks itself goes stale, and the one it picked (400) left
+# every item of a larger tracker outside it unread while the queue still answered as though the inbox were empty. The
+# count is the label-scoped population in all states, so the window ends up being the inbox's own size.
+shaping_set=$(gh api graphql \
+  -f query='query($owner: String!, $name: String!, $label: String!) { repository(owner: $owner, name: $name) { issues(states: [OPEN, CLOSED], labels: [$label]) { totalCount } } }' \
+  -f owner="$owner" -f name="$name" -f label="$shaping_label" \
+  --jq '.data.repository.issues.totalCount') || exit $?
+case "$shaping_set" in
+  ''|*[!0-9]*)
+    issues_die "shaping: the tracker did not answer how many items carry $shaping_label (got '$shaping_set')" ;;
+esac
+
+# `--limit` is the caller's own window: it replaces the counted window rather than being added to it, and a set the
+# window does not cover is the same refusal, because a list that comes back as full as the window it was asked for is
+# a read the tracker overran either way.
+if [ -n "$limit" ]; then
+  case "$limit" in
+    *[!0-9]*) issues_die "shaping: --limit wants a number, got '$limit'" ;;
+  esac
+  window="$limit"
+else
+  window=$((shaping_set + 1))
+fi
+
+issues=$(gh issue list --state all --label "$shaping_label" --limit "$window" \
+                      --json number,title,labels,comments,updatedAt,state) || exit $?
+read_count=$(printf '%s' "$issues" | jq 'length')
+[ "$read_count" -lt "$window" ] ||
+  issues_refuse "shaping-set-uncovered" \
+    "the tracker reports $shaping_set item(s) carrying $shaping_label and the read came back full at $read_count — the queue refuses a set it could not cover"
 
 selected=$(printf '%s' "$issues" | jq -c --arg label "$shaping_label" '
   [ .[]
@@ -76,6 +117,7 @@ fi
 count=$(printf '%s' "$selected" | jq 'length')
 if [ "$count" -eq 0 ]; then
   printf 'no item awaits shaping (%s)\n' "$shaping_label"
+  printf 'read from the %s item(s) the tracker counts carrying %s\n' "$shaping_set" "$shaping_label"
   printf 'LOOP-SHAPING-COUNT 0\n'
   exit "$ISSUES_EXIT_OK"
 fi
@@ -98,5 +140,8 @@ printf '%s\n' "$selected" | jq -r '.[] | [
   done
 printf '%s item(s) await shaping — reshape one with tools/issues/update.sh <issue> --remove-label %s\n' \
   "$count" "$shaping_label"
+# The set the count was taken over is stated beside the queue's own count: a person reads which population the queue
+# covered, and an item outside it is the defect this line makes visible instead of hiding (#1094).
+printf 'read from the %s item(s) the tracker counts carrying %s\n' "$shaping_set" "$shaping_label"
 printf 'LOOP-SHAPING-COUNT %s\n' "$count"
 exit "$ISSUES_EXIT_OK"

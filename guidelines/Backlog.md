@@ -307,7 +307,11 @@ that the item's *shape* is wrong rather than that a question is open — `unspec
 `not-spec-shaped`, which `roles.shapingVerdicts` names so a project declares its own list. For those
 the run writes `agent/needs-shaping` in the same call as the hold and its one comment, whose first line is the
 verdict and whose `**The shaping:**` line is the clause behind it; `tools/issues/shaping.sh` lists every open item
-carrying the label with exactly that record, and an item carrying it with no statement is named as carrying none.
+carrying the label with exactly that record, and an item carrying it with no statement is named as carrying none. It
+counts the items the label selects before it reads them, and asks the list for a window one item larger than that
+count, so the window is the inbox's own size rather than a constant of the tool; a read that comes back as full as
+that window is refused as `shaping-set-uncovered`, and every listing states the set it was taken over — because an
+empty inbox nobody can check is the answer that hides the item (#1094).
 A `needs-diagnosis` skip is not one of them: it states a question, so the run escalates it with
 `agent/needs-decision` and writes no shaping label (#738).
 Its reader is the `.pi/skills/reshape-issue` skill, which reads that listing and proposes the one mechanism the item

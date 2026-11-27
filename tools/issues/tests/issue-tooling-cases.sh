@@ -104,6 +104,8 @@ ISSUES_SHELL_CASES=(
   'shaping#theQueuePrintsTheVerdictAndClause'
   'shaping#anItemWithNoStatementIsNamed'
   'shaping#anEmptyQueueExitsZero'
+  'shaping#anItemOutsideTheNewestPageIsListed'
+  'shaping#aReadThatCannotCoverTheSetIsRefused'
   'shaping#anEmptyListIsAnEmptyQueue'
   'shaping#theDecisionQueueIgnoresTheShapingLabel'
   'shaping#answeringAShapingItemIsRefused'
@@ -286,6 +288,8 @@ issues_run_shell_case() {
     'shaping#theQueuePrintsTheVerdictAndClause') case_shaping_theQueuePrintsTheVerdictAndClause ;;
     'shaping#anItemWithNoStatementIsNamed') case_shaping_anItemWithNoStatementIsNamed ;;
     'shaping#anEmptyQueueExitsZero') case_shaping_anEmptyQueueExitsZero ;;
+    'shaping#anItemOutsideTheNewestPageIsListed') case_shaping_anItemOutsideTheNewestPageIsListed ;;
+    'shaping#aReadThatCannotCoverTheSetIsRefused') case_shaping_aReadThatCannotCoverTheSetIsRefused ;;
     'shaping#anEmptyListIsAnEmptyQueue') case_shaping_anEmptyListIsAnEmptyQueue ;;
     'shaping#theDecisionQueueIgnoresTheShapingLabel') case_shaping_theDecisionQueueIgnoresTheShapingLabel ;;
     'shaping#answeringAShapingItemIsRefused') case_shaping_answeringAShapingItemIsRefused ;;
@@ -1460,6 +1464,69 @@ case_shaping_anEmptyQueueExitsZero() {
   assert_eq "0" "$status" "an empty inbox is not a failure"
   assert_contains "$out" "no item awaits shaping" "and it says so"
   assert_contains "$out" "LOOP-SHAPING-COUNT 0" "with the count at zero"
+}
+
+# The window the queue asks for is the labelled set's own size, counted first (#1094): the constant it used to ask
+# for (`400`) left every older labelled item unread while the queue still answered as if the inbox were empty. The
+# tracker here is larger than that constant, and the *oldest* item carries the label and a statement.
+shaping_label() { # the label the profile's shaping role resolves to
+  local separator agent
+  separator=$(jq -r '.namespaceSeparator // "/"' "$(profile_path)")
+  agent=$(jq -r '.roles.shapingAgent // empty' "$(profile_path)")
+  [ -n "$agent" ] || fail "the profile declares no shapingAgent — there is no label to read"
+  printf 'agent%s%s\n' "${separator:-/}" "$agent"
+}
+
+shaping_tracker() { # <dir> <total> <labelled numbers…> → a tracker of <total> issues, numbered 1..total
+  local dir="$1" total="$2"; shift 2
+  jq -n --argjson n "$total" --arg label "$(shaping_label)" \
+        --argjson labelled "$(printf '%s\n' "$@" | jq -R . | jq -sc 'map(tonumber)')" '
+    [ range(1; $n + 1) as $number
+      | { number: $number,
+          state: "OPEN",
+          title: ("§" + ($number | tostring) + " a fixture item, number " + ($number | tostring)),
+          updatedAt: "2026-11-26T09:00:00Z",
+          body: ("<!-- nvid: " + ($number | tostring) + " -->\n\n- **Observed** ✗: nothing.\n- **Anchor** ℹ: `openspec/specs/shaping-inbox/spec.md` states the state."),
+          author: { login: "Framstag" },
+          labels: ([ { name: "class/bug" }, { name: "category/specs-and-process" },
+                     { name: "status/on-hold" }, { name: "source/todo-import" } ]
+                   + (if ($labelled | index($number)) == null then []
+                      else [ { name: $label } ] end)),
+          comments: (if ($labelled | index($number)) == null then []
+                     else [ { author: { login: "Framstag" },
+                              createdAt: "2026-11-26T09:00:00Z",
+                              body: ("too-wide: the item wants splitting into children\n\n**The shaping:** six capability deltas would have to land together, and one change carries one delta.\n\nEvidence: /tmp/loop-items/"
+                                     + ($number | tostring)) } ]
+                     end) } ]' > "$dir/issues.json"
+}
+
+# The oldest labelled item of a tracker larger than the constant the queue used to ask for is inside the set the
+# queue reads, and the coverage line says which set that was.
+case_shaping_anItemOutsideTheNewestPageIsListed() {
+  export GH_STUB_DIR="$(scratch)"
+  local out status
+  shaping_tracker "$GH_STUB_DIR" 405 1 2
+  out=$(run_tool shaping.sh 2>&1); status=$?
+  assert_eq "0" "$status" "the queue is a read: $out"
+  assert_contains "$out" "#1 " "the oldest item a run handed back is listed, outside the newest 400"
+  assert_contains "$out" "#2 " "beside the newest"
+  assert_contains "$out" "2 item(s) await shaping" "and the count is the labelled set's own number"
+  assert_contains "$out" "read from the 2 item(s) the tracker counts carrying" \
+    "with the set the count was taken over stated, so an empty answer is checkable"
+}
+
+# Items filed between the count and the read: the list comes back as full as the window it was asked for, so the
+# read overran the set it counted and nothing is listed.
+case_shaping_aReadThatCannotCoverTheSetIsRefused() {
+  export GH_STUB_DIR="$(scratch)" GH_STUB_COUNT_LAG=1
+  local out status
+  shaping_tracker "$GH_STUB_DIR" 405 1 2
+  out=$(run_tool shaping.sh 2>&1); status=$?
+  unset GH_STUB_COUNT_LAG
+  assert_eq "3" "$status" "a read the counted set cannot cover is a refusal: $out"
+  assert_contains "$out" "shaping-set-uncovered" "and the refusal names it"
+  assert_contains "$out" "1 item(s) carrying" "stating the set the tracker counted"
+  assert_not_contains "$out" "#1 " "and nothing is listed as covered"
 }
 
 # A project that names no shaping verdict declares the list empty, and then no run writes the label — so the queue

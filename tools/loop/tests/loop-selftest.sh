@@ -887,9 +887,18 @@ count_matching() { # <pattern> → how many declared cases it names
 files_select() { # <case> → the file set names this case
   local tok p
   [ "$only_files" = " " ] && return 0
-  for p in $only_files; do
-    [ "$from_git_narrowed" -eq 1 ] && [ "$p" = "$case_file" ] && continue
-    case " $core_files " in *" $p "*) return 0 ;; esac
+  # A core token ending in `/` names a directory and owns the paths below it — the rule a case's own declaration is
+  # read with below, applied to the suite's core set as well, so a cases file a split puts under it still owes the
+  # whole set (issue #1104). Anything else is equal-or-nothing, exactly as it was.
+  for tok in $core_files; do
+    case "$tok" in
+      */) for p in $only_files; do
+            [ "$from_git_narrowed" -eq 1 ] && [ "$p" = "$case_file" ] && continue
+            case "$p" in "$tok"*) return 0 ;; esac
+          done ;;
+      *) [ "$from_git_narrowed" -eq 1 ] && [ "$tok" = "$case_file" ] && continue
+         case " $only_files " in *" $tok "*) return 0 ;; esac ;;
+    esac
   done
   for tok in ${case_files[$1]:-}; do
     [ "$tok" = '*' ] && return 0

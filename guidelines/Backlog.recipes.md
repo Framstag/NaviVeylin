@@ -1211,8 +1211,9 @@ That case is the suite's cheapest and was, until 2026-11-06, reachable only thro
 declaration twelve minutes into its gate — `1 of 320 cases failed`, reported by `tools/loop/tests/loop-selftest.sh --from-git
 528d8e2a` (435 s) after `./gradlew test` (285 s) — over one path token missing from a comment, and the attempt was
 recorded `blocked` with nothing archived. The profile's `LOOP_GATE_FIRST_STEPS` has the suite map's `<glob>|<command>`
-shape and the gate reads it before the build and before every suite, so `tools/loop/tests/loop-cases.sh` owes
-`tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach` first. The child's own step is written the other
+shape and the gate reads it before the build and before every suite, so a cases file of the suite's set —
+`tools/loop/tests/loop-cases.sh` today, and any `*.sh` a split puts under `tools/loop/tests/cases/` (issue #1104) —
+owes `tools/loop/tests/loop-selftest.sh --case driver#everyCaseDeclaresTheFilesItCanReach` first. The child's own step is written the other
 way round: `tools/loop/prompts/worker.md` is an engine template, so it sends the child to the plan's first line and
 names neither this case nor this command — a project value in the template would arrive in another project's child
 and order it to run a case that project does not have — because the order saves the gate's tail and only the child's

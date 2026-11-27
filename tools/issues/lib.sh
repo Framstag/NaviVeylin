@@ -310,9 +310,24 @@ issues_preflight() {
   [ "$status" -eq 0 ] || issues_die "issues: preflight failed: $out"
 }
 
-# The live issue list, as the dedup and selection queries read it.
+# A read of the tracker, to its last item (#1091). `gh issue list` answers a newest-created-first list, so a fixed
+# window is the newest N and not the tracker: the items it drops are the oldest ones, and nothing in a report over
+# it says how many were missed. The window doubles while a page comes back full, and the short page is the proof that
+# the list has ended — a tracker inside the first window costs the one call it always cost.
+issues_issue_list_all() { # <json fields> → a JSON array of every issue of the tracker
+  local fields="$1" window=1000 page held
+  while :; do
+    page=$(gh issue list --state all --limit "$window" --json "$fields") || return 1
+    held=$(printf '%s' "$page" | jq 'length' 2>/dev/null) || return 1
+    if [ "$held" -lt "$window" ]; then printf '%s\n' "$page"; return 0; fi
+    window=$((window * 2))
+  done
+}
+
+# The live issue list, as the dedup and selection queries read it — the whole tracker, for the same reason: the item
+# a window drops is exactly the one a duplicate search cannot see.
 issues_issue_list() {
-  gh issue list --state all --limit 400 --json number,title,labels,body,author
+  issues_issue_list_all number,title,labels,body,author
 }
 
 # --------------------------------------------------------------------------- the state namespace

@@ -147,7 +147,7 @@ fi
 # ── the per-issue half: the label and the marker, whether they agree, and the settled pair ──────────────
 
 if [ "$mode" = "live" ]; then
-  issues_json=$(gh issue list --state all --limit 400 --json number,title,labels,body,issueType,parent,state 2>/dev/null) ||
+  issues_json=$(issues_issue_list_all number,title,labels,body,issueType,parent,state 2>/dev/null) ||
     issues_die "check-metadata: gh could not read the tracker (--live needs a token)"
 elif [ "$mode" = "issues" ]; then
   [ -f "$issues_file" ] || issues_die "check-metadata: no such issue file: $issues_file"

@@ -473,7 +473,7 @@ sensors_issues_of_row() { # <row-id> → a JSON array
   label=$(sensors_label "$1")
   # `createdAt` is the instant a filing's own marker carries, so it is requested with the rest: one write
   # produces the issue and the marker, so the issue's creation time is the marker's (issue #668).
-  gh issue list --state all --limit 400 --json number,title,body,labels,state,stateReason,author,comments,createdAt 2>/dev/null |
+  issues_issue_list_all number,title,body,labels,state,stateReason,author,comments,createdAt 2>/dev/null |
     jq -c --arg label "$label" '[.[]? | select([(.labels // [])[]?.name] | index($label) != null)]'
 }
 

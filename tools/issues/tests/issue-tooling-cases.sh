@@ -177,6 +177,7 @@ ISSUES_SHELL_CASES=(
   'metadata#bothPerItemModesCheckIt'
   'metadata#theJsonCarriesTheViolation'
   'metadata#anUnreadableFieldIsNamed'
+  'metadata#theLiveReadDoesNotTruncateTheTracker'
   'prioritise#recordsOutgrowOneArgument'
   'create#writesTheTypeItWasGiven'
   'create#writesTheDependencyItWasGiven'
@@ -353,6 +354,7 @@ issues_run_shell_case() {
     'metadata#bothPerItemModesCheckIt') case_metadata_bothPerItemModesCheckIt ;;
     'metadata#theJsonCarriesTheViolation') case_metadata_theJsonCarriesTheViolation ;;
     'metadata#anUnreadableFieldIsNamed') case_metadata_anUnreadableFieldIsNamed ;;
+    'metadata#theLiveReadDoesNotTruncateTheTracker') case_metadata_theLiveReadDoesNotTruncateTheTracker ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
 }
@@ -3417,6 +3419,37 @@ case_docs_theFilingSkillsNameTheTypeAxis() {
   # what an update must carry names both (task 3.2).
   grep -q 'At least one of.*--type.*--parent' "$ISSUES_REPO_ROOT/.pi/skills/update-issue/SKILL.md" ||
     fail "update-issue/SKILL.md's 'at least one of …' sentence no longer lists --type and --parent"
+  return 0
+}
+
+# The read covers the tracker, not its newest window (#1091): `gh issue list` answers newest-created first, so a
+# tracker one item longer than a fixed window loses its oldest item — and the count the report prints says how many
+# items were read, never how many were missed. The tracker here is one item longer than the window the pass used to
+# ask for, and the only drift in it sits on the oldest item, which such a window never reaches.
+case_metadata_theLiveReadDoesNotTruncateTheTracker() {
+  local dir out status
+  dir=$(scratch)
+  # 401 items, numbered 1..401 with `createdAt` rising with the number, so the newest-first order is #401 … #1 and
+  # the drifted item is the one a 400-item read drops. Every other item is green: `class/bug` + `prio/p2` over the
+  # complete `band=p2` marker of the fixture `metadata/ok.json`, and each carries a type so the census is silent.
+  jq -nc '[range(1; 402) | . as $n | {
+      number: $n,
+      title: "fixture item \($n)",
+      state: "OPEN",
+      createdAt: ((1704067200 + $n) | todate),
+      labels: [{name: "class/bug"}, {name: "prio/p2"}],
+      body: (if $n == 1
+             then "<!-- prio: band=p1 score=9 sev=4 reach=2 conf=1 occ=1 basis=0123456789abcdef at=2026-10-17 -->"
+             else "<!-- prio: band=p2 score=9 sev=4 reach=2 conf=1 occ=1 basis=0123456789abcdef at=2026-10-17 -->" end),
+      issueType: {name: "Task"}
+    }]' > "$dir/issues.json"
+  export GH_STUB_DIR="$dir"
+
+  out=$(run_tool check-metadata.sh --live 2>&1); status=$?
+  assert_eq "1" "$status" "the drift outside a 400-item window is reported: $out"
+  assert_contains "$out" "#1 band-mismatch" "and named by the item that carries it"
+  assert_contains "$out" "marker=p1 label=prio/p2" "with the disagreement it breaks"
+  assert_contains "$out" "401 issue(s) checked" "over the tracker's own population, not the newest 400"
   return 0
 }
 

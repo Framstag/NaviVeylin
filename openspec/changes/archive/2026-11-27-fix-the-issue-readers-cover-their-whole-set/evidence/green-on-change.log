@@ -1,0 +1,14 @@
+# #1096 — the restored tree: the same three cases, green.
+
+=== check#theLiveReadIsTheWholeSet
+  ok   the whole set is read, so the old child is a violation
+  ok   the count is the tracker's own set
+  ok   the untyped child is named
+  ok   with its container
+PASS check#theLiveReadIsTheWholeSet
+
+=== duplicates#aDuplicateOutsideTheNewestPageIsFound
+PASS duplicates#aDuplicateOutsideTheNewestPageIsFound
+
+=== resolver#anOldItemsCitationIsStillNominated
+PASS resolver#anOldItemsCitationIsStillNominated

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/issues/tests (the three readers of #1096, restored)" tests="3" failures="0" errors="0" time="0" run="2026-11-27">
+  <testcase classname="tools/issues/tests" name="duplicates#aDuplicateOutsideTheNewestPageIsFound"/>
+  <testcase classname="tools/issues/tests" name="check#theLiveReadIsTheWholeSet"/>
+  <testcase classname="tools/issues/tests" name="resolver#anOldItemsCitationIsStillNominated"/>
+  <system-out>tools/issues/tests/issue-tooling-selftest.sh --case duplicates#aDuplicateOutsideTheNewestPageIsFound: PASS
+tools/issues/tests/check-metadata-selftest.sh --case check#theLiveReadIsTheWholeSet: PASS
+tools/issues/tests/resolve-stale-selftest.sh --case resolver#anOldItemsCitationIsStillNominated: PASS</system-out>
+</testsuite>

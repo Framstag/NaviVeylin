@@ -1,0 +1,21 @@
+# #1096 — the falsification pass: the pre-fix window put back into one reader at a time, the case that
+# names it run, the file restored byte for byte, the case run again. Taken 2026-11-27 in the change root.
+
+=== mutation 1: tools/issues/duplicates.sh (window="${limit:-400}", refusal removed)
+82:window="${limit:-400}"
+85::
+  the pair below the window is found, and its survivor is the older item: expected '81', got 'null'
+FAIL duplicates#aDuplicateOutsideTheNewestPageIsFound
+
+=== mutation 2: tools/issues/check-metadata.sh (live_window=400, refusal removed)
+153:  live_window=400
+  FAIL the whole set is read, so the old child is a violation: expected [1] got [0]
+  FAIL the count is the tracker's own set: [405 issue(s) checked] not found in: check-metadata: 400 issue(s) checked · 0 violation(s) · 0 untyped
+  FAIL the untyped child is named: [#43 untyped-child] not found in: check-metadata: 400 issue(s) checked · 0 violation(s) · 0 untyped
+  FAIL with its container: [container #41] not found in: check-metadata: 400 issue(s) checked · 0 violation(s) · 0 untyped
+
+=== mutation 3: tools/issues/resolve-stale.sh (read_window=400, refusal removed)
+119:  read_window=400
+134:: > "$report"
+  the whole backlog is read: expected '405', got '400'
+FAIL resolver#anOldItemsCitationIsStillNominated

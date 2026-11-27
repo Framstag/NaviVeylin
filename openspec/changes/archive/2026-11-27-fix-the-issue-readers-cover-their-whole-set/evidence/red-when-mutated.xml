@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/issues/tests (the three readers of #1096, mutated)" tests="3" failures="3" errors="0" time="0" run="2026-11-27">
+  <testcase classname="tools/issues/tests" name="duplicates#aDuplicateOutsideTheNewestPageIsFound">
+    <failure message="the pair below the window is not found: survivor null — with window=&quot;${limit:-400}&quot; and the refusal removed, the read is the newest 400 of 405 and the pair is outside it">see evidence/red-when-mutated.log</failure>
+  </testcase>
+  <testcase classname="tools/issues/tests" name="check#theLiveReadIsTheWholeSet">
+    <failure message="the whole set is read, so the old child is a violation: expected [1] got [0] — with live_window=400 the run reports &quot;400 issue(s) checked · 0 violation(s)&quot; over a tracker of 405">see evidence/red-when-mutated.log</failure>
+  </testcase>
+  <testcase classname="tools/issues/tests" name="resolver#anOldItemsCitationIsStillNominated">
+    <failure message="the whole backlog is read: expected '405', got '400' — with read_window=400 the oldest item&apos;s stale citation is never seen">see evidence/red-when-mutated.log</failure>
+  </testcase>
+  <system-out>tools/issues/tests/issue-tooling-selftest.sh --case duplicates#aDuplicateOutsideTheNewestPageIsFound: FAIL
+tools/issues/tests/check-metadata-selftest.sh --case check#theLiveReadIsTheWholeSet: FAIL
+tools/issues/tests/resolve-stale-selftest.sh --case resolver#anOldItemsCitationIsStillNominated: FAIL</system-out>
+</testsuite>

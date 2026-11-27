@@ -145,6 +145,8 @@ LOOP_SHELL_CASES=(
   'run#aChangeWhosePremiseMovedIsNotRePlanned'
   'clean#aConsumedChangeIsReported'
   'clean#aSecondRunFindsNothing'
+  'clean#aConsumedSourceIsReadDurably'
+  'clean#aChangeWorkedInSlicesIsKept'
   'labels#verdictToLabelMatrix'
   'labels#holdCarriesItsReason'
   'labels#trapRemovesInProgressOnSignal'
@@ -1010,6 +1012,8 @@ loop_run_shell_case() {
     'run#aChangeWhosePremiseMovedIsNotRePlanned') fn=case_run_aChangeWhosePremiseMovedIsNotRePlanned ;;
     'clean#aConsumedChangeIsReported') fn=case_clean_aConsumedChangeIsReported ;;
     'clean#aSecondRunFindsNothing') fn=case_clean_aSecondRunFindsNothing ;;
+    'clean#aConsumedSourceIsReadDurably') fn=case_clean_aConsumedSourceIsReadDurably ;;
+    'clean#aChangeWorkedInSlicesIsKept') fn=case_clean_aChangeWorkedInSlicesIsKept ;;
     'labels#verdictToLabelMatrix') fn=case_labels_verdictToLabelMatrix ;;
     'labels#holdCarriesItsReason') fn=case_labels_holdCarriesItsReason ;;
     'labels#trapRemovesInProgressOnSignal') fn=case_labels_trapRemovesInProgressOnSignal ;;
@@ -18192,6 +18196,51 @@ case_clean_aSecondRunFindsNothing() {
   [ -e "$src" ] && fail "the consumed source survived --apply"
   out=$(run_clean "$p" --apply) || fail "the second --apply failed: $out"
   assert_contains "$out" "nothing to remove" "a second run finds nothing of it"
+}
+
+# The record that names a consumed source outlives the run that consumed it, and the run's own state does not: the
+# next run's `init` replaces `.changeCopies` and `.items` with its own, and the item's durable record is
+# `items/<issue>/change-copy.json`, which this arm never read (issue #1114). Measured 2026-11-27 in this project's
+# tree: `openspec list` reports eight sources as in-progress whose archived twin is complete and whose own tasks are
+# all unchecked — `the-displayed-viewport-is-one-projection`, `the-loop-core-exists-and-compiles` and six more.
+case_clean_aConsumedSourceIsReadDurably() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop-clean.sh tools/loop/state.sh tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/check-change-readiness.sh tools/pi-child-events.sh tools/tooling.json
+  local d p src out n
+  d=$(scratch); p=$(new_project)
+  tier_b_change "$p" add-prepared-change
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario tier-b)
+  stub_success "$d"
+  run_loop "$p" --items 1 --minutes 90 >/dev/null 2>&1 || true
+  src="$p/openspec/changes/add-prepared-change"
+  [ -d "$src" ] || fail "the case needs the source to survive the landed item"
+  run_state "$p" init --items 1 --minutes 90 >/dev/null 2>&1 || fail "the next run's init failed"
+  assert_eq "" "$(run_state "$p" get '.changeCopies // ""')" "the next run's state no longer names the copy"
+  out=$(run_clean "$p") || fail "loop-clean failed: $out"
+  assert_matches "$out" "would remove openspec/changes/add-prepared-change \\([0-9][0-9]* B\\) — the change #31 consumed" \
+    "the durable record still names the consumed source"
+  n=$(printf '%s\n' "$out" | grep -c 'add-prepared-change')
+  assert_eq "1" "$n" "and it is named once, not once per record that holds it"
+}
+
+# The other reading the same record owes: a prepared change whose own tasks are partly checked is being worked in
+# slices, and its archived twin is the earlier slice's, not this one's. Measured 2026-11-27:
+# `openspec/changes/settings-taxonomy-and-surface` carries 11 checked and 24 open tasks and two archived twins, and an
+# item landed from it — a rule that read the twin alone would delete the change the next slice is prepared from.
+case_clean_aChangeWorkedInSlicesIsKept() {
+  # files: tools/loop/tests/fixtures/scenarios/ tools/loop/loop-clean.sh tools/loop/state.sh tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/check-change-readiness.sh tools/pi-child-events.sh tools/tooling.json
+  local d p src out
+  d=$(scratch); p=$(new_project)
+  tier_b_change "$p" add-prepared-change
+  export GH_STUB_DIR; GH_STUB_DIR=$(scenario tier-b)
+  stub_success "$d"
+  run_loop "$p" --items 1 --minutes 90 >/dev/null 2>&1 || true
+  src="$p/openspec/changes/add-prepared-change"
+  [ -d "$src" ] || fail "the case needs the source to survive the landed item"
+  printf -- '- [x] the first slice, which landed\n- [ ] the second slice, which is still owed\n' > "$src/tasks.md"
+  run_state "$p" init --items 1 --minutes 90 >/dev/null 2>&1 || fail "the next run's init failed"
+  out=$(run_clean "$p") || fail "loop-clean failed: $out"
+  assert_contains "$out" "kept openspec/changes/add-prepared-change" "the change the next slice is prepared from is kept"
+  assert_contains "$out" "a task of its own is checked" "and the report says which reading kept it"
 }
 
 # ------------------------------------------------------------------- cases: the processes a suite leaves

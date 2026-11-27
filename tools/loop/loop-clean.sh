@@ -277,13 +277,43 @@ done <<< "$(git -C "$LOOP_ROOT" worktree list --porcelain 2>/dev/null | sed -n '
 # source directory its worktree copy was taken from (`worktree.sh start-item --change`). It is reported only for an
 # item the state records as done: a source an unfinished item left is that item's unfinished work, and this command
 # is not a second discard path. It removes nothing but the path it named, never a path that leaves the project.
+#
+# Which record names them is the durable one (issue #1114). This arm used to read `.changeCopies` out of the run's
+# own state file, and a run's state is replaced by the next run's `init` — `.changeCopies`, `.items` and all — so
+# every source a past run consumed was named by nothing: measured 2026-11-27 in this tree, eight sources sat in
+# `openspec/changes/` whose archived twin was complete and whose own tasks were all unchecked, and `openspec list`
+# reported each as in-progress. What outlives the run is the item's own `items/<issue>/change-copy.json`, which
+# `run.sh` writes when it prepares the item, and the item's result in the run's event record, which `init` does not
+# replace; both are read here, and a source two records name is reported once.
+items_root="$(dirname "$LOOP_STATE_FILE")/items"
 say "loop-clean: change sources the landed items consumed"
-if [ ! -f "$LOOP_STATE_FILE" ]; then
+if [ ! -f "$LOOP_STATE_FILE" ] && [ ! -d "$items_root" ]; then
   say "  none — no run state at ${LOOP_STATE_FILE#"$LOOP_ROOT"/}"
   kept=$((kept + 1))
 else
+  # The items a record calls landed: this run's state, whose word for a landing is `done`, and every result the
+  # event record still carries, whose word is `closed` — the result a run records once the change is merged and the
+  # item's work is over (issues #1114: the state is replaced by the next run's `init`, the event record is not).
+  landed=$( { jq -r '(.items // []) | .[] | select((.result // "") == "done") | .issue | tostring' \
+                "$LOOP_STATE_FILE" 2>/dev/null
+              jq -r 'select(.kind == "item-result" and (.result // "") == "closed") | .issue | tostring' \
+                "$LOOP_RUN_EVENTS" "$LOOP_RUN_EVENTS.1" 2>/dev/null ; } | sort -u)
+  # The copies those items were prepared from: the run's own state, and one record beside each item it prepared.
+  copies=$( { jq -r '(.changeCopies // {}) | to_entries[] | [.key, (.value.source // "")] | @tsv' \
+                "$LOOP_STATE_FILE" 2>/dev/null
+              for copy_json in "$items_root"/*/change-copy.json; do
+                [ -f "$copy_json" ] || continue
+                issue=$(basename "$(dirname "$copy_json")")
+                jq -r --arg i "$issue" 'select((.source // "") != "") | [$i, .source] | @tsv' \
+                  "$copy_json" 2>/dev/null
+              done ; } )
+  seen_sources=""
   while IFS=$'\t' read -r consumed_issue consumed_source; do
     [ -n "$consumed_source" ] || continue
+    # An unfinished item's source is that item's work, not this command's to remove: only a landed item's is read.
+    printf '%s\n' "$landed" | grep -qx -- "$consumed_issue" || continue
+    case "$seen_sources" in *"|$consumed_source|"*) continue ;; esac
+    seen_sources="$seen_sources|$consumed_source|"
     case "$consumed_source" in
       /*|..|*/../*|*/..|*..)
         say "  kept $consumed_source — not a path inside the project"
@@ -292,6 +322,15 @@ else
     esac
     consumed_dir="$LOOP_ROOT/$consumed_source"
     [ -e "$consumed_dir" ] || [ -L "$consumed_dir" ] || continue
+    # A change worked in slices keeps its source: the archived twin is the earlier slice's, and the source's own
+    # tasks say a later one is still owed (measured 2026-11-27: `settings-taxonomy-and-surface` carried 11 checked
+    # and 24 open tasks beside two archived twins). One checked task is that reading — a prepared change nobody has
+    # started carries none, and neither did any of the eight sources this arm exists for.
+    if [ -f "$consumed_dir/tasks.md" ] && grep -q -- '- \[x\]' "$consumed_dir/tasks.md"; then
+      say "  kept $consumed_source — a task of its own is checked, so a later slice is still prepared from it"
+      kept=$((kept + 1))
+      continue
+    fi
     size=$(loop_bytes_of "$consumed_dir")
     if [ "$apply" -eq 1 ]; then
       rm -rf -- "$consumed_dir" || { say "  could not remove $consumed_source"; continue; }
@@ -300,12 +339,7 @@ else
       say "  would remove $consumed_source ($size B) — the change #$consumed_issue consumed"
     fi
     paths=$((paths + 1)); bytes=$((bytes + size))
-  done < <(jq -r '
-    . as $s
-    | (($s.items // []) | map(select((.result // "") == "done") | (.issue | tostring))) as $landed
-    | (($s.changeCopies // {}) | to_entries[])
-    | select(.key as $k | $landed | index($k) != null)
-    | [.key, (.value.source // "")] | @tsv' "$LOOP_STATE_FILE" 2>/dev/null)
+  done <<< "$copies"
 fi
 
 # ── the item directories the run kept ─────────────────────────────────────────────────────────────
@@ -318,7 +352,6 @@ fi
 # closure happened (`metrics.closed: yes`) is one the tracker closed, and anything else — no record, another result,
 # a landing the run was not allowed to close — is kept and named with that reason. A state file that cannot be read
 # keeps every directory, the same answer an unreadable base gets from the branch arm.
-items_root="$(dirname "$LOOP_STATE_FILE")/items"
 archive_days=$(loop_conf_value LOOP_ITEM_ARCHIVE_DAYS)
 case "$archive_days" in ''|*[!0-9]*) archive_days=0 ;; esac
 say "loop-clean: item directories under ${items_root#"$LOOP_ROOT"/} that no open issue cites, older than ${archive_days} days"

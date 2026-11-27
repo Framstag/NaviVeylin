@@ -385,7 +385,12 @@ Three facts about a tier-B change, because the run has to carry it: the change i
 unarchived (`.gitignore` ignores `openspec/changes/*/`), the run **copies** it into the item's worktree before the
 worker starts and records the copy (`worktree.sh start-item --change`), and the source directory a landed item
 consumed is the **clean command's** to report and remove (`tools/loop/loop-clean.sh`). The item's closure, not the
-leftover's absence, is what stops a second consume. Two consequences: the copy is the authority, so an edit to the
+leftover's absence, is what stops a second consume. What names that source once the run is over is the item's own
+`items/<issue>/change-copy.json` and its `item-result` line in the run's event record, not the state's
+`changeCopies` — the next run's `init` replaces it, so a source a past run consumed was named by nothing while eight
+of them stood in `openspec/changes/` as in-progress (issue #1114) — and a source whose own `tasks.md` carries a
+checked task is kept rather than removed, because the archived twin of a change worked in slices is the earlier
+slice's, not this one's. Two consequences: the copy is the authority, so an edit to the
 source while the item runs is recorded and not merged, and a change the tree does not hold, or one the readiness
 check no longer passes, refuses the item before any child starts. The requirements are `agent-issue-loop`'s —
 "A change the item names is handed to its worktree" and its three neighbours; the pre-screen's refusal is

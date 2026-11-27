@@ -508,14 +508,24 @@ shell_cases=$(loop_shell_cases) || exit 1
 # with another row, its body (`tools/loop/tests/loop-cases.sh:13670`) and its arm (`:1239`) stayed, and five merges and
 # every focused run by its author read green.
 #
-# The names are derived from the file that was just sourced, never from a second declaration of them: a body is a
+# The names are derived from the files that were just sourced, never from a second declaration of them: a body is a
 # `case_<group>_<Name>() {` line, an arm is a `'<group>#<Name>') fn=case_<group>_<Name> ;;` line, and the declared set
-# is what `loop_shell_cases` answered. Three shapes are not this suite's own and are not read: a cases file that
-# defines no body at all dispatches by convention (`loop_run_shell_case` overridden, which is what the suite's own
+# is what `loop_shell_cases` answered. The scan is handed the cases file and, when the tree carries one, the file a
+# dispatch arm table of its own is read from (`tools/loop/tests/loop-case-index.sh`, issue #1102), so the three sets are
+# compared once over the files the suite reads. Three shapes are not this suite's own and are not read: a cases file
+# that defines no body at all dispatches by convention (`loop_run_shell_case` overridden, which is what the suite's own
 # nested fixtures write), a body or an arm inside a heredoc belongs to the nested suite that heredoc writes, and the
 # four `stub#owns*` bodies are inside a nested fixture's own quoted `LOOP_SHELL_CASES` string, so they are exempt by
-# name. A file with bodies but no arm table is held only to the bodies and the rows.
-# `driver#aCaseWithNoSelectionRowIsRefused` is the case that holds the refusal to a cases file whose row was replaced.
+# name. A file with bodies but no arm table is held only to the bodies and the rows, and a scan whose files carry no
+# arm at all is that same tree: the bodies-only comparison is taken only when no scanned file carries an arm.
+# `driver#aCaseWithNoSelectionRowIsRefused` is the case that holds the refusal to a cases file whose row was replaced,
+# and `driver#anArmTableInASecondFileIsCompared` is the case that holds the scan to the second file the arms moved to.
+case_scan_files=("$root/tools/loop/tests/loop-cases.sh")
+# A path the tree does not have cannot be handed to awk — it exits 2 on a file it cannot open — so the arm table's
+# own file is added only once the tree carries it (issue #1102's split is what writes it).
+if [ -f "$root/tools/loop/tests/loop-case-index.sh" ]; then
+  case_scan_files+=("$root/tools/loop/tests/loop-case-index.sh")
+fi
 registration=$(awk -v declared="$shell_cases" -v q="'" '
   BEGIN { n = split(declared, d, " "); for (i = 1; i <= n; i++) selected[d[i]] = 1 }
   {
@@ -562,7 +572,7 @@ registration=$(awk -v declared="$shell_cases" -v q="'" '
       if (!(nm in arm))
         printf "loop-selftest: %s is a row of LOOP_SHELL_CASES with no dispatch arm — a filter can name it and nothing reaches it (issue #929)\n", nm
   }
-' "$root/tools/loop/tests/loop-cases.sh")
+' "${case_scan_files[@]}")
 if [ -n "$registration" ]; then
   printf '%s\n' "$registration" >&2
   printf 'loop-selftest: the cases file names a case in one of its three sets and not in another, and a row a delta replaces instead of inserting shrinks the suite in silence (issue #929)\n' >&2

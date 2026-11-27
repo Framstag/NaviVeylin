@@ -90,6 +90,11 @@ internal fun AutoMapRenderer.followAnchor(): VehicleAnchorPosition = followAncho
  * inside that band moves to the nearest free position; every other preset keeps
  * its exact fraction, so the default framing is unchanged. Falls back to the raw
  * position when the surface is not ready.
+ *
+ * This is [displayedViewport]'s INPUT — the frame's anchor-centred commit — and not a
+ * second projection the blit has to agree with: the resolved anchor fraction is read once,
+ * by the derivation (spec: auto-smooth-follow — Single resolved anchor in the AA follow
+ * blit).
  */
 internal fun AutoMapRenderer.anchorCenterFor(lat: Double, lon: Double): Pair<Double, Double> {
     if (surfaceWidth <= 0 || surfaceHeight <= 0) return lat to lon
@@ -97,6 +102,49 @@ internal fun AutoMapRenderer.anchorCenterFor(lat: Double, lon: Double): Pair<Dou
     return anchorCenter(
         lat, lon, resolved.fx, resolved.fy,
         viewportZoomFraction, surfaceWidth, surfaceHeight, projectionDpi, viewportAngle
+    )
+}
+
+/**
+ * The car's **displayed viewport** for one frame: the frame viewport shifted by the clamped
+ * overrun offset, and the resolved anchor fraction it was derived on (spec:
+ * auto-smooth-follow — Single resolved anchor in the AA follow blit).
+ *
+ * One derivation, read by the blit, the marker's draw offset and the frame's own commit: the
+ * resolved anchor fraction is read HERE, once, instead of each site resolving it again (the
+ * derivation's singularity, issue #1043). [anchorCenterFor] stays the derivation's input —
+ * it produces the frame's anchor-centred commit — and is not a second projection.
+ *
+ * `centerAnchored` is the browse-mode reading: with no follow anchor the frame centre IS the
+ * displayed position, so the fraction is the plain centre, exactly as before.
+ */
+internal data class DisplayedViewport(
+    val anchorFraction: ResolvedAnchor,
+    val offset: OverrunWindow.DisplayOffset
+)
+
+internal fun AutoMapRenderer.displayedViewport(
+    pointLat: Double,
+    pointLon: Double,
+    frameLat: Double,
+    frameLon: Double,
+    frameMag: Double,
+    frameAngle: Double,
+    frameWidth: Int,
+    frameHeight: Int,
+    surfaceW: Int,
+    surfaceH: Int,
+    centerAnchored: Boolean = false
+): DisplayedViewport {
+    val anchor = if (centerAnchored) ResolvedAnchor(0.5, 0.5) else resolvedFollowAnchor()
+    return DisplayedViewport(
+        anchorFraction = anchor,
+        offset = OverrunWindow.shiftPx(
+            pointLat, pointLon,
+            frameLat, frameLon, frameMag, frameAngle,
+            frameWidth, frameHeight, surfaceW, surfaceH, projectionDpi,
+            anchor.fx, anchor.fy
+        )
     )
 }
 

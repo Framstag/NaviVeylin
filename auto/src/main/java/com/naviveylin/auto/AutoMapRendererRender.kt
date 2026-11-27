@@ -67,7 +67,7 @@ internal fun AutoMapRenderer.renderFrame() {
             // presets (clampAnchorOutOfPane against the host's 40% leading band) and
             // a mismatch keeps the offset permanently outside the overrun margin —
             // every tick becomes a full native render instead of a sub-region blit.
-            val resolvedAnchor = resolvedFollowAnchor()
+            val (blitLat, blitLon) = if (followMode) markerPosition() else viewportLat to viewportLon
             // The offset is measured on the DISPLAYED vehicle position, not on the
             // frame center (change `overlay-projects-against-displayed-frame`,
             // spec: auto-map-renderer — Map re-renders on viewport change;
@@ -80,14 +80,16 @@ internal fun AutoMapRenderer.renderFrame() {
             // 0.4x the surface height), which exceeds the overrun margin for every
             // preset away from the center — and then every follow viewport change
             // falls back to a full native render instead of a blit.
-            val (blitLat, blitLon) = if (followMode) markerPosition() else viewportLat to viewportLon
-            val offset = OverrunWindow.shiftPx(
+            //
+            // One derivation, read here and by the marker's own draw offset (issue
+            // #1043): the resolved fraction is not resolved again per site.
+            val displayed = displayedViewport(
                 blitLat, blitLon,
                 overrunLat, overrunLon, overrunMag, overrunAngle,
-                ob.width, ob.height, w, h, projectionDpi,
-                if (followMode) resolvedAnchor.fx else 0.5,
-                if (followMode) resolvedAnchor.fy else 0.5
+                ob.width, ob.height, w, h,
+                centerAnchored = !followMode
             )
+            val offset = displayed.offset
             if (!offset.clamped) {
                 // Viewport change within the overrun region → blit, no
                 // native render (spec: auto-map-renderer, design D2).
@@ -98,8 +100,7 @@ internal fun AutoMapRenderer.renderFrame() {
                 }
                 blitToSurface(
                     surf, ob, offset.clampedX, offset.clampedY, w, h,
-                    if (followMode) resolvedAnchor.fx else 0.5,
-                    if (followMode) resolvedAnchor.fy else 0.5
+                    displayed.anchorFraction.fx, displayed.anchorFraction.fy
                 )
                 true
             } else {
@@ -272,14 +273,14 @@ internal fun AutoMapRenderer.fullRender(surf: Surface, w: Int, h: Int) {
                 // place, so draw centered.
                 0.0 to 0.0
             } else {
-                val resolved = resolvedFollowAnchor()
-                val off = OverrunWindow.shiftPx(
+                // The same derived displayed viewport the blit reads (issue #1043):
+                // the marker's own draw offset is not a third reading of the anchor.
+                val displayed = displayedViewport(
                     mLat, mLon,
                     frameLat, frameLon, frameMag, frameAngle,
-                    bitmap.width, bitmap.height, w, h, projectionDpi,
-                    resolved.fx, resolved.fy
+                    bitmap.width, bitmap.height, w, h
                 )
-                off.clampedX to off.clampedY
+                displayed.offset.clampedX to displayed.offset.clampedY
             }
         } else {
             0.0 to 0.0

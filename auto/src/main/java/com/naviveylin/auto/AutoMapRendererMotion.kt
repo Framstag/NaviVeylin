@@ -14,7 +14,6 @@ import com.framstag.libosmscout.client.OSMScoutClient
 import com.naviveylin.core.FollowDisplayState
 import com.naviveylin.core.FollowPrediction
 import com.naviveylin.core.MapRenderUtil
-import com.naviveylin.core.OverrunWindow
 import com.naviveylin.core.ProjectionUtils
 import com.naviveylin.core.RenderBitmapPool
 import com.naviveylin.core.VehicleAnchorPosition
@@ -189,20 +188,20 @@ internal fun AutoMapRenderer.extrapolationTick(nowMs: Long, dtSec: Double) {
         // a recycled bitmap crashes. Holding the lock from the read
         // through the draw serializes against fullRender's swap.
         val current = overrunBitmap ?: return
-        val resolved = resolvedFollowAnchor()
-        val offset = OverrunWindow.shiftPx(
+        // One derived displayed viewport per tick (spec: auto-smooth-follow — Single
+        // resolved anchor in the AA follow blit): the blit offset and the fraction the
+        // frame was committed on come from ONE derivation, instead of this site
+        // resolving the anchor and the marker's path resolving it again (issue #1043).
+        // The fraction is the RESOLVED one anchorCenterFor commits the frame on; the
+        // raw preset differs for pane-band presets and a mismatch keeps the offset
+        // permanently outside the overrun margin — every tick then becomes a full
+        // native render instead of a sub-region blit.
+        val displayed = displayedViewport(
             displayLat, displayLon,
             overrunLat, overrunLon, overrunMag, overrunAngle,
-            current.width, current.height, w, h, projectionDpi,
-            // Single resolved anchor (spec: auto-smooth-follow — Single
-            // resolved anchor in the AA follow blit): the SAME fraction
-            // anchorCenterFor commits the frame on. The raw preset differs
-            // from it for pane-band presets (clampAnchorOutOfPane against
-            // the host's 40% leading band) and a mismatch keeps the offset
-            // permanently outside the overrun margin — every tick becomes a
-            // full native render instead of a sub-region blit.
-            resolved.fx, resolved.fy
+            current.width, current.height, w, h
         )
+        val offset = displayed.offset
         // Diagnostic (mirrors the phone's MapCanvasScreen follow log): fix
         // vs predicted vs displayed vs offset, so an AA logcat shows
         // exactly where the overshoot comes from. The line's format (locale-independent
@@ -224,7 +223,10 @@ internal fun AutoMapRenderer.extrapolationTick(nowMs: Long, dtSec: Double) {
             }
             return
         }
-        blitToSurface(surf, current, offset.clampedX, offset.clampedY, w, h, resolved.fx, resolved.fy)
+        blitToSurface(
+            surf, current, offset.clampedX, offset.clampedY, w, h,
+            displayed.anchorFraction.fx, displayed.anchorFraction.fy
+        )
     }
 }
 

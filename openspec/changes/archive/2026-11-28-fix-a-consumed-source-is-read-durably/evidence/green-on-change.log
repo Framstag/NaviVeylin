@@ -1,0 +1,7 @@
+$ tools/loop/tests/loop-selftest.sh --case clean#aConsumedSourceIsReadDurably
+PASS clean#aConsumedSourceIsReadDurably
+exit 0
+
+$ tools/loop/tests/loop-selftest.sh --case clean#aChangeWorkedInSlicesIsKept
+PASS clean#aChangeWorkedInSlicesIsKept
+exit 0

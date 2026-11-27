@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop/tests (a consumed source is read durably, on the base commit)" tests="2" failures="2" errors="0" time="84" run="2026-11-27T23:16:12Z">
+  <testcase classname="tools/loop/tests" name="clean#aConsumedSourceIsReadDurably">
+    <failure message="the durable record still names the consumed source: no line matching /would remove openspec/changes/add-prepared-change \([0-9][0-9]* B\) — the change #31 consumed/">clean#aConsumedSourceIsReadDurably|   the durable record still names the consumed source: no line matching /would remove openspec/changes/add-prepared-change \([0-9][0-9]* B\) — the change #31 consumed/ in: loop-clean: change sources the landed items consumed
+--- clean#aConsumedSourceIsReadDurably[0] (exit 1)
+  the durable record still names the consumed source: no line matching /would remove openspec/changes/add-prepared-change \([0-9][0-9]* B\) — the change #31 consumed/
+FAIL clean#aConsumedSourceIsReadDurably
+loop-selftest: 1 of 1 cases failed</failure>
+  </testcase>
+  <testcase classname="tools/loop/tests" name="clean#aChangeWorkedInSlicesIsKept">
+    <failure message="the change the next slice is prepared from is kept: 'kept openspec/changes/add-prepared-change' not found">clean#aChangeWorkedInSlicesIsKept|   the change the next slice is prepared from is kept: 'kept openspec/changes/add-prepared-change' not found in: loop-clean: change sources the landed items consumed
+--- clean#aChangeWorkedInSlicesIsKept[0] (exit 1)
+  the change the next slice is prepared from is kept: 'kept openspec/changes/add-prepared-change' not found
+FAIL clean#aChangeWorkedInSlicesIsKept
+loop-selftest: 1 of 1 cases failed</failure>
+  </testcase>
+  <system-out>tools/loop/tests/loop-selftest.sh --case clean#aConsumedSourceIsReadDurably: FAIL (1 of 1 cases failed)
+tools/loop/tests/loop-selftest.sh --case clean#aChangeWorkedInSlicesIsKept: FAIL (1 of 1 cases failed)
+the production file tools/loop/loop-clean.sh was put back to 856269d96fd25c7831cbd489b118251d2563ff2c for this run and restored afterwards</system-out>
+</testsuite>

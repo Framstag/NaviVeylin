@@ -1,0 +1,47 @@
+$ tools/loop/tests/loop-selftest.sh --case clean#aConsumedSourceIsReadDurably
+clean#aConsumedSourceIsReadDurably|   the durable record still names the consumed source: no line matching /would remove openspec/changes/add-prepared-change \([0-9][0-9]* B\) — the change #31 consumed/ in: loop-clean: build output in .pi/worktrees/loop
+clean#aConsumedSourceIsReadDurably| loop-clean: self-test scratch trees under .pi/tmp older than 120 min
+clean#aConsumedSourceIsReadDurably| loop-clean: self-test scratch trees under .pi/worktrees/loop/.pi/tmp older than 120 min
+clean#aConsumedSourceIsReadDurably| loop-clean: branches of the loop whose patches are in the base
+clean#aConsumedSourceIsReadDurably| loop-clean: worktrees under .pi/worktrees that the run does not keep
+clean#aConsumedSourceIsReadDurably| loop-clean: change sources the landed items consumed
+clean#aConsumedSourceIsReadDurably| loop-clean: item directories under .pi/issue-loop/items that no open issue cites, older than 14 days
+clean#aConsumedSourceIsReadDurably|   kept items/31 — written within 14 days, an open issue may still cite it
+clean#aConsumedSourceIsReadDurably| loop-clean: nothing to remove — 1 path(s) kept
+--- clean#aConsumedSourceIsReadDurably[0] (exit 1)
+  the durable record still names the consumed source: no line matching /would remove openspec/changes/add-prepared-change \([0-9][0-9]* B\) — the change #31 consumed/ in: loop-clean: build output in .pi/worktrees/loop
+loop-clean: self-test scratch trees under .pi/tmp older than 120 min
+loop-clean: self-test scratch trees under .pi/worktrees/loop/.pi/tmp older than 120 min
+loop-clean: branches of the loop whose patches are in the base
+loop-clean: worktrees under .pi/worktrees that the run does not keep
+loop-clean: change sources the landed items consumed
+loop-clean: item directories under .pi/issue-loop/items that no open issue cites, older than 14 days
+  kept items/31 — written within 14 days, an open issue may still cite it
+loop-clean: nothing to remove — 1 path(s) kept
+FAIL clean#aConsumedSourceIsReadDurably
+loop-selftest: 1 of 1 cases failed
+exit 1
+
+$ tools/loop/tests/loop-selftest.sh --case clean#aChangeWorkedInSlicesIsKept
+clean#aChangeWorkedInSlicesIsKept|   the change the next slice is prepared from is kept: 'kept openspec/changes/add-prepared-change' not found in: loop-clean: build output in .pi/worktrees/loop
+clean#aChangeWorkedInSlicesIsKept| loop-clean: self-test scratch trees under .pi/tmp older than 120 min
+clean#aChangeWorkedInSlicesIsKept| loop-clean: self-test scratch trees under .pi/worktrees/loop/.pi/tmp older than 120 min
+clean#aChangeWorkedInSlicesIsKept| loop-clean: branches of the loop whose patches are in the base
+clean#aChangeWorkedInSlicesIsKept| loop-clean: worktrees under .pi/worktrees that the run does not keep
+clean#aChangeWorkedInSlicesIsKept| loop-clean: change sources the landed items consumed
+clean#aChangeWorkedInSlicesIsKept| loop-clean: item directories under .pi/issue-loop/items that no open issue cites, older than 14 days
+clean#aChangeWorkedInSlicesIsKept|   kept items/31 — written within 14 days, an open issue may still cite it
+clean#aChangeWorkedInSlicesIsKept| loop-clean: nothing to remove — 1 path(s) kept
+--- clean#aChangeWorkedInSlicesIsKept[0] (exit 1)
+  the change the next slice is prepared from is kept: 'kept openspec/changes/add-prepared-change' not found in: loop-clean: build output in .pi/worktrees/loop
+loop-clean: self-test scratch trees under .pi/tmp older than 120 min
+loop-clean: self-test scratch trees under .pi/worktrees/loop/.pi/tmp older than 120 min
+loop-clean: branches of the loop whose patches are in the base
+loop-clean: worktrees under .pi/worktrees that the run does not keep
+loop-clean: change sources the landed items consumed
+loop-clean: item directories under .pi/issue-loop/items that no open issue cites, older than 14 days
+  kept items/31 — written within 14 days, an open issue may still cite it
+loop-clean: nothing to remove — 1 path(s) kept
+FAIL clean#aChangeWorkedInSlicesIsKept
+loop-selftest: 1 of 1 cases failed
+exit 1

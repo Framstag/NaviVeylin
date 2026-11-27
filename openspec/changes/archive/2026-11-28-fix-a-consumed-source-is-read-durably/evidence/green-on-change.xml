@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop/tests (a consumed source is read durably, on the change)" tests="2" failures="0" errors="0" time="86" run="2026-11-27T23:20:00Z">
+  <testcase classname="tools/loop/tests" name="clean#aConsumedSourceIsReadDurably">
+    <system-out>PASS clean#aConsumedSourceIsReadDurably</system-out>
+  </testcase>
+  <testcase classname="tools/loop/tests" name="clean#aChangeWorkedInSlicesIsKept">
+    <system-out>PASS clean#aChangeWorkedInSlicesIsKept</system-out>
+  </testcase>
+  <system-out>tools/loop/tests/loop-selftest.sh --case clean#aConsumedSourceIsReadDurably: PASS
+tools/loop/tests/loop-selftest.sh --case clean#aChangeWorkedInSlicesIsKept: PASS</system-out>
+</testsuite>

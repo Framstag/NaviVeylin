@@ -1,0 +1,6 @@
+  the oldest item a run handed back is listed, outside the newest 400: '#1 ' not found in: no item awaits shaping (agent/needs-shaping)
+LOOP-SHAPING-COUNT 0
+FAIL shaping#anItemOutsideTheNewestPageIsListed
+  a read the counted set cannot cover is a refusal: no item awaits shaping (agent/needs-shaping)
+LOOP-SHAPING-COUNT 0: expected '3', got '0'
+FAIL shaping#aReadThatCannotCoverTheSetIsRefused

@@ -1,0 +1,2 @@
+  the queue is a read: shaping-set-uncovered: the tracker reports 2 item(s) carrying agent/needs-shaping and the read came back full at 400 — the queue refuses a set it could not cover: expected '0', got '3'
+FAIL shaping#anItemOutsideTheNewestPageIsListed

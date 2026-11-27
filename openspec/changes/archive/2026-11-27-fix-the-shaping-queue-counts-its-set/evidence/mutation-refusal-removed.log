@@ -1,0 +1,12 @@
+  a read the counted set cannot cover is a refusal: #1  too-wide: the item wants splitting into children
+     six capability deltas would have to land together, and one change carries one delta.
+     §1 a fixture item, number 1
+     last touched 2026-11-26T09:00:00Z
+#2  too-wide: the item wants splitting into children
+     six capability deltas would have to land together, and one change carries one delta.
+     §2 a fixture item, number 2
+     last touched 2026-11-26T09:00:00Z
+2 item(s) await shaping — reshape one with tools/issues/update.sh <issue> --remove-label agent/needs-shaping
+read from the 1 item(s) the tracker counts carrying agent/needs-shaping
+LOOP-SHAPING-COUNT 2: expected '3', got '0'
+FAIL shaping#aReadThatCannotCoverTheSetIsRefused

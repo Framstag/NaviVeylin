@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/issues/tests/issue-tooling-selftest.sh --case shaping#anItemOutsideTheNewestPageIsListed / --case shaping#aReadThatCannotCoverTheSetIsRefused" tests="2" failures="2" errors="0">
+  <system-out>FAIL shaping#anItemOutsideTheNewestPageIsListed — the oldest item a run handed back is listed, outside the newest 400: '#1 ' not found in: no item awaits shaping (agent/needs-shaping)
+FAIL shaping#aReadThatCannotCoverTheSetIsRefused — a read the counted set cannot cover is a refusal: no item awaits shaping (agent/needs-shaping) LOOP-SHAPING-COUNT 0: expected '3', got '0'</system-out>
+</testsuite>

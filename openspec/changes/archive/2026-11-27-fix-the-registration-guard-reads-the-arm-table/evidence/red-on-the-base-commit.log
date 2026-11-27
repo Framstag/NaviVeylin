@@ -1,0 +1,5 @@
+driver#anArmTableInASecondFileIsCompared|   a lost arm in the second file is refused, never skipped: PASS stub#kept: expected '1', got '0'
+--- driver#anArmTableInASecondFileIsCompared[0] (exit 1)
+  a lost arm in the second file is refused, never skipped: PASS stub#kept: expected '1', got '0'
+FAIL driver#anArmTableInASecondFileIsCompared
+loop-selftest: 1 of 1 cases failed

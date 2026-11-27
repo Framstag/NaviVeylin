@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop/tests/loop-selftest.sh --from-git 37b3b83fa80a8f6ea0a241831e6eb798b4bba69d" tests="579" failures="3" errors="0" time="568" run="1030597">
+  <system-out>loop-selftest: census 8 cases 14.40 s loop-selftest: core 14 cases 21.16 s loop-selftest: 3 of 579 cases failed — 567.36 s</system-out>
+</testsuite>

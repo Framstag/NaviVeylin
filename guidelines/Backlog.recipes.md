@@ -1205,6 +1205,12 @@ the declaration was generated once from the case bodies and is kept honest by
 `driver#everyCaseDeclaresTheFilesItCanReach`, which reads every body and refuses a declaration narrower than the
 case it describes.
 
+The declared set and the arm table are the index's, in `tools/loop/tests/loop-case-index.sh`, sourced once from the top
+of the cases file (issue #1108): the registration guard reads the arms from both files, and the two regions a
+case-adding change must read are that file's whole text rather than the suite's, so a delta to it owes the whole suite
+exactly as a delta to the cases file does — `loop_case_core_files` names it and `tools/loop/layout.tsv` bounds it, which
+is what keeps the index from growing back into a file nobody can read.
+
 That case is the suite's cheapest and was, until 2026-11-06, reachable only through the suite's most expensive command
 (issue #792): a delta that wrote a declaration owed `tools/loop/tests/loop-selftest.sh --from-git <base>` and nothing cheaper, so
 #790's attempt passed the 11 cases its own `--case` selection owed and was refused by the one case that reads a

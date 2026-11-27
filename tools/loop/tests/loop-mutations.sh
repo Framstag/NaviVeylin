@@ -1654,6 +1654,12 @@ MUTATIONS=(
   # 1035.1 — the state that names the verdict a blocked run carried. Without the arm `branch_state_of` answers the
   # verification the blocked attempt's own case log looked like, which is how an item its run had refused was adopted.
   '1035.1@-@tools/loop/worktree.sh@worktree#aBranchWhoseRunEndedBlockedIsNotAdoptable@the arm that answers gate-red for a branch whose run ended on a gate that did not pass, so the one case log a blocked attempt copied reads as the verification of its change and the item is adopted and closed (issue #1035)@s|^  \[ -z "\$gate_red" \] \|\| .*$|  : # the mutation drops the gate-red arm|'
+  # 1108.1 / 1108.2 — the two regions a case-adding change must read, moved out of the cases file (issue #1108). The
+  # move is only worth its lines if a second copy of either region is noticed where it would be paid for: a second arm
+  # table put back at the cases file's top level returns the whole-suite read, and a missing layout row leaves the
+  # index's bound declared by nobody. `driver#theCaseIndexIsItsOwnFile` is what must notice each.
+  '1108.1@-@tools/loop/tests/loop-cases.sh@driver#theCaseIndexIsItsOwnFile@a second arm table put back at the cases file'"'"'s top level, so one case row is answered by reading the file that holds every body again (issue #1108)@s|^set -uo pipefail$|set -uo pipefail\nloop_gone() {\n  case "\$1" in\n    '"'"'state#initAndShowRoundTrips'"'"') fn=case_state_initAndShowRoundTrips\n  esac\n}|'
+  '1108.2@-@tools/loop/layout.tsv@driver#theCaseIndexIsItsOwnFile@the row that bounds the index, so the file that is now the one path such a change edits is held to no number at all (issue #1108)@s|^tests/loop-case-index\.sh.*|# the mutation removes the row that bounds the index|'
 )
 
 # The harness's two probes: they prove the harness's own guards can fail, on a throwaway copy of the engine

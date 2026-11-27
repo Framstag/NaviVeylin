@@ -6972,3 +6972,30 @@ A core case SHALL exist in the core's own case list, and the suite SHALL ask tha
 - **WHEN** a core case carries no declared files
 - **THEN** the case-list check fails and names the case
 - **Case**: `core#aCoreCaseDeclaresItsFiles`
+
+### Requirement: The suite's declared set and its dispatch table are their own file
+
+The suite SHALL keep the two regions a case-adding change must read — the declared set `LOOP_SHELL_CASES` and the
+dispatch table `loop_run_shell_case()` — in their own file under `tools/loop/tests/`, and SHALL source that file exactly
+once, from the top of the file that holds the case bodies, before anything reads the set or dispatches a case. Neither
+region SHALL be defined at the cases file's top level: a second copy of either is the drift the registration guard
+refuses. The index file SHALL be named as a core file of the suite, so a delta to it owes the whole suite exactly as a
+delta to the cases file does, and it SHALL carry a positive line bound in the engine's layout table, so its growth is a
+red case instead of a fact. The declared set SHALL keep the ids and the order it has, ending with the row a change adds,
+and the dispatcher SHALL keep one arm per row, including the arms for the cases the core declares.
+
+#### Scenario: A cases file that still holds the index is refused
+
+- **WHEN** the suite's case index file is absent and the declared set and the dispatch table are still at the top level
+  of `tools/loop/tests/loop-cases.sh`
+- **THEN** the case fails naming the index path and saying the declared set and the arm table are still in the cases
+  file, rather than reading the cases file as the index
+- **Case**: `driver#theCaseIndexIsItsOwnFile`
+
+#### Scenario: The moved set answers the same ids in the same order, one arm each
+
+- **WHEN** the suite lists its cases over the tree this change writes
+- **THEN** the declared set's first row is `state#initAndShowRoundTrips` and its last is the row the change added, the
+  dispatcher carries one arm for each of those two rows in the index file, and neither region appears at the cases
+  file's top level
+- **Case**: `driver#theCaseIndexIsItsOwnFile`

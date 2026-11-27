@@ -32,7 +32,7 @@ source "$here/lib.sh"
 
 apply=0
 json=0
-limit=400
+limit=""
 max_items=25
 profile_arg=""
 while [ $# -gt 0 ]; do
@@ -43,8 +43,10 @@ while [ $# -gt 0 ]; do
     # dispatch — measured by the review, not by a test, because no case runs the workflow.
     --dry-run) apply=0; shift ;;
     --json) json=1; shift ;;
-    # Two bounds, not one: `--limit` is what is *read* from the tracker (a fingerprint group can pair the newest
-    # item with an old one), `--max-items` is what may be *written* in one run, as `resolve-stale.sh` splits it.
+    # Two bounds, not one: `--limit` narrows what is *read* from the tracker, and a narrowed read that comes back
+    # full is refused rather than reported as coverage (#1096); `--max-items` is what may be *written* in one run,
+    # as `resolve-stale.sh` splits it. Unset, the read is the tracker's own set — its count plus one (#1093) —
+    # because a fixed window dropped the oldest items while the sweep reported a clean tracker.
     --limit) need_value "$@"; limit="${2:-}"; shift 2 ;;
     --max-items) need_value "$@"; max_items="${2:-}"; shift 2 ;;
     --profile) need_value "$@"; profile_arg="${2:-}"; shift 2 ;;
@@ -53,9 +55,11 @@ while [ $# -gt 0 ]; do
     *) issues_die "duplicates: unexpected argument $1" ;;
   esac
 done
-case "$limit" in ''|*[!0-9]*) issues_die "duplicates: --limit takes a number" ;; esac
+case "$limit" in
+  ''|*[!0-9]*) [ -z "$limit" ] || issues_die "duplicates: --limit takes a number" ;;
+esac
 case "$max_items" in ''|*[!0-9]*) issues_die "duplicates: --max-items takes a number" ;; esac
-[ "$limit" -gt 0 ] || issues_die "duplicates: --limit must be at least 1"
+[ -z "$limit" ] || [ "$limit" -gt 0 ] || issues_die "duplicates: --limit must be at least 1"
 
 issues_resolve "$profile_arg"
 profile="$ISSUES_PROFILE"
@@ -73,8 +77,12 @@ open_state=$(jq -r '.roles.openStatus // empty' "$profile")
 # `open|closed|all`, this project's status namespace has its own words — and a profile whose status value is not
 # `open` would make the scheduled step die on an argument `gh` never chose (found in review round 2; the stub
 # shifts `--state` blind, so no case could see it).
-issues=$(gh issue list --state all --limit "$limit" --json number,title,state,labels,body,comments) ||
+# The window is the set unless the caller narrowed it, and a read that came back as full as the window is refused:
+# a sweep that decides on part of the tracker and reports the tracker is the defect this check exists against.
+window="${limit:-$(issues_set_window all)}"
+issues=$(gh issue list --state all --limit "$window" --json number,title,state,labels,body,comments) ||
   issues_die "duplicates: gh could not list the tracker"
+issues_set_covered "$((window - 1))" "$window" "$(printf '%s' "$issues" | jq 'length')"
 
 report=$(printf '%s' "$issues" | jq -c --arg eligibility "$eligibility_label" --arg open_state "$open_state" '
   def labelnames: [(.labels // [])[] | if type == "string" then . else .name end];

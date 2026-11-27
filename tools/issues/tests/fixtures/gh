@@ -229,13 +229,20 @@ case "$group" in
         refuse "api graphql — the query names ${owner:-no owner}/${name:-no name}, the fixtures hold $fixture_repo"
       need_file issues.json
       # Two arms over one fixture: a query naming a label counts that label's set (the decision queue, #805), and a
-      # query naming none counts the whole tracker (the pass's whole-set read, #1093). Both answer all states, as
-      # the query's `states: [OPEN, CLOSED]` asks, and both lag by GH_STUB_COUNT_LAG, because the race a case
-      # watches is between the count and the read and not between two scopes of it.
+      # query naming none counts the whole tracker (the pass's whole-set read, #1093). The states the query names
+      # decide the set it is answered from — `[OPEN, CLOSED]` is the tracker, `[OPEN]` the backlog the repairs walk
+      # (#1096) — and both lag by GH_STUB_COUNT_LAG, because the race a case watches is between the count and the
+      # read and not between two scopes of it.
+      case "$query" in
+        *'states: [OPEN]'*) scope="open" ;;
+        *) scope="all" ;;
+      esac
       if [ -n "$label" ]; then
         total=$(jq --arg label "$label" '[ .[]
           | select([(.labels // [])[] | if type == "string" then . else .name end] | index($label) != null)
         ] | length' "$(fixture_path issues.json)")
+      elif [ "$scope" = "open" ]; then
+        total=$(jq '[ .[] | select((.state // "OPEN") != "CLOSED") ] | length' "$(fixture_path issues.json)")
       else
         total=$(jq 'length' "$(fixture_path issues.json)")
       fi

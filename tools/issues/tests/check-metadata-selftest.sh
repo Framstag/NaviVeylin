@@ -46,6 +46,7 @@ CASES=(
   'check#unrankedIsNotAViolation'
   'check#untypedItemIsReported'
   'check#selfCheckIsGreen'
+  'check#theLiveReadIsTheWholeSet'
 )
 
 if [ "$list_only" -eq 1 ]; then
@@ -227,6 +228,30 @@ case_unrankedIsNotAViolation() {
   expect "and reports no violations" "0" "$(printf '%s' "$CHECK_OUT" | jq -r '.violations | length')"
 }
 
+# The live read is the whole set (#1096): the tracker holds 404 items and the untyped child of a container is among
+# the four oldest, which a 400-item window never reaches. A windowed read answered "consistent" over a set it never
+# saw, so the case asserts the child is named and the count is the tracker's own.
+case_theLiveReadIsTheWholeSet() {
+  local d bin oldpath
+  d=$(mktemp -d "$tmp/live.XXXXXX") || { echo "  FAIL cannot create a scratch directory"; fail_done=1; return 0; }
+  jq -n '[ range(100; 500) as $n
+           | {number: $n, title: "filler \($n)", state: "OPEN", stateReason: "", body: "", comments: [],
+              createdAt: "2026-01-01T00:00:00Z", author: {login: "Framstag"},
+              issueType: {name: "Task"}, parent: null,
+              labels: [{name: "class/bug"}, {name: "category/car"}, {name: "status/open"}]}]' > "$d/filler.json"
+  jq -s 'add' "$fixtures/children.json" "$d/filler.json" > "$d/issues.json"
+  mkdir -p "$d/bin"
+  printf '#!/usr/bin/env bash\nexec %q "$@"\n' "$root/tools/issues/tests/fixtures/gh" > "$d/bin/gh"
+  chmod +x "$d/bin/gh"
+  oldpath="$PATH"; export GH_STUB_DIR="$d"; PATH="$d/bin:$PATH"; export PATH
+  run_check --live
+  PATH="$oldpath"; export PATH; unset GH_STUB_DIR
+  expect "the whole set is read, so the old child is a violation" "1" "$CHECK_STATUS"
+  expect_contains "the count is the tracker's own set" "405 issue(s) checked" "$CHECK_OUT"
+  expect_contains "the untyped child is named" "#43 untyped-child" "$CHECK_OUT"
+  expect_contains "with its container" "container #41" "$CHECK_OUT"
+}
+
 case_selfCheckIsGreen() {
   # The token-free mode CI runs: the profile's bands, the marker grammar's single home, and the two write
   # paths' refusal to name the opt-in — all on the committed tree, with no tracker.
@@ -285,6 +310,7 @@ if [ -n "$only_case" ]; then
     'check#unrankedIsNotAViolation') case_unrankedIsNotAViolation ;;
     'check#untypedItemIsReported') case_untypedItemIsReported ;;
     'check#selfCheckIsGreen') case_selfCheckIsGreen ;;
+    'check#theLiveReadIsTheWholeSet') case_theLiveReadIsTheWholeSet ;;
     *) echo "check-metadata-selftest: no such case: $only_case" >&2; exit 2 ;;
   esac
   [ "$fail_done" -eq 0 ] || exit 1
@@ -306,6 +332,7 @@ for name in "${CASES[@]}"; do
     'check#unrankedIsNotAViolation') case_unrankedIsNotAViolation ;;
     'check#untypedItemIsReported') case_untypedItemIsReported ;;
     'check#selfCheckIsGreen') case_selfCheckIsGreen ;;
+    'check#theLiveReadIsTheWholeSet') case_theLiveReadIsTheWholeSet ;;
   esac
   if [ "$fail_done" -eq "$fail_before" ]; then
     echo "PASS $name"

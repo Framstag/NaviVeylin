@@ -70,8 +70,11 @@ rule fire. An `nvid` collision is reported and never repaired, because which ite
 identifier is recorded in the migration table rather than derivable from the tracker. The same run prints, and
 never acts on, the items whose number a commit on `main` names: a commit that mentions an id has not necessarily
 delivered the item, and today's landing practice cherry-picks, so one message names the id on `main` and on the
-item's branch. Its two bounds are separate — `--limit` is what it reads, `--max-items` what it writes in one run.
-What needs a judgement — a merge of two items whose fingerprints differ, a closure of work that is provably done,
+item's branch. Its write bound is `--max-items`, what it may write in one run; what it *reads* is the tracker's
+own set — its count plus one, refused when the read comes back that full — because a fixed window dropped the
+oldest items while the sweep reported a clean tracker (#1096), and `--limit` now only narrows that read, a
+narrowed read which fills its window being refused rather than reported as coverage. What needs a judgement —
+a merge of two items whose fingerprints differ, a closure of work that is provably done,
 a status a run left behind — stays `cleanup-todo`, a skill a person runs.
 The checks run in a pipeline of their own, off the change-validation path, triggered only by a schedule or
 an explicit dispatch, pinned to the main branch by a check at run time, guarded against overlapping runs, and

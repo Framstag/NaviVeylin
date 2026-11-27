@@ -127,6 +127,7 @@ ISSUES_SHELL_CASES=(
   'duplicates#landedCandidateIsPrintedNotClosed'
   'duplicates#cleanTrackerExitsZeroWithoutAWrite'
   'duplicates#differentFingerprintsAreNotMerged'
+  'duplicates#aDuplicateOutsideTheNewestPageIsFound'
   'answer#requiresTheDecisionText'
   'answer#refusesWhatIsNotADecision'
   'answer#continueReturnsTheItemToTheQueue'
@@ -311,6 +312,7 @@ issues_run_shell_case() {
     'duplicates#landedCandidateIsPrintedNotClosed') case_duplicates_landedCandidateIsPrintedNotClosed ;;
     'duplicates#cleanTrackerExitsZeroWithoutAWrite') case_duplicates_cleanTrackerExitsZeroWithoutAWrite ;;
     'duplicates#differentFingerprintsAreNotMerged') case_duplicates_differentFingerprintsAreNotMerged ;;
+    'duplicates#aDuplicateOutsideTheNewestPageIsFound') case_duplicates_aDuplicateOutsideTheNewestPageIsFound ;;
     'answer#requiresTheDecisionText') case_answer_requiresTheDecisionText ;;
     'answer#refusesWhatIsNotADecision') case_answer_refusesWhatIsNotADecision ;;
     'answer#continueReturnsTheItemToTheQueue') case_answer_continueReturnsTheItemToTheQueue ;;
@@ -1195,6 +1197,34 @@ case_duplicates_differentFingerprintsAreNotMerged() {
   out=$(run_tool duplicates.sh --json 2>&1)
   # 84 and 85 share an nvid but not a fingerprint: a duplicate is one fingerprint, several items, and nothing else
   assert_eq "1" "$(printf '%s' "$out" | jq -r '.groups | length')" "exactly the one real duplicate group"
+}
+
+# The tracker is read whole, never through a window (#1096): the tracker holds 405 items and the duplicate pair sits
+# among the five oldest, which is exactly what a 400-item read drops. A windowed sweep reported a clean tracker while
+# the pair stood outside it, so the case asserts the pair is reported, its younger item closed, and its JSON named.
+case_duplicates_aDuplicateOutsideTheNewestPageIsFound() {
+  local d out log
+  d=$(scratch)
+  mkdir -p "$d/tracker"
+  # 400 newer items beside the fixture's five: the fillers carry a createdAt, the fixture's items carry none, so a
+  # newest-first window of 400 holds every filler and none of the fixture — the boundary this case is about.
+  jq -n '[ range(100; 500) as $n
+           | {number: $n, title: "filler \($n)", state: "OPEN", stateReason: "",
+              body: "a separate filing\n<!-- fingerprint: \($n) -->\n", comments: [],
+              createdAt: "2026-01-01T00:00:00Z", author: {login: "Framstag"},
+              labels: [{name: "class/bug"}, {name: "category/car"}, {name: "status/open"},
+                       {name: "source/agent"}]}]' > "$d/filler.json"
+  jq -s 'add' "$(scenario duplicates)/issues.json" "$d/filler.json" > "$d/tracker/issues.json"
+  export GH_STUB_DIR="$d/tracker" GH_STUB_RECORD="$d/calls.log"
+  : > "$d/calls.log"; log="$d/calls.log"
+  out=$(run_tool duplicates.sh --json 2>&1) || fail "the sweep failed: $out"
+  assert_eq "81" "$(printf '%s' "$out" | jq -r '.groups[0].survivor')" \
+    "the pair below the window is found, and its survivor is the older item"
+  assert_eq "82 83" "$(printf '%s' "$out" | jq -r '[.groups[0].duplicates[].issue] | join(" ")')" \
+    "and the JSON names both younger items"
+  out=$(run_tool duplicates.sh --apply 2>&1) || fail "the sweep failed to apply: $out"
+  assert_contains "$(cat "$log")" "issue close 82" "the authorisable duplicate is closed"
+  return 0
 }
 
 case_decisions_emptyQueueIsNotAnError() {

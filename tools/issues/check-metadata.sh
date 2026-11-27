@@ -147,8 +147,13 @@ fi
 # ── the per-issue half: the label and the marker, whether they agree, and the settled pair ──────────────
 
 if [ "$mode" = "live" ]; then
-  issues_json=$(gh issue list --state all --limit 400 --json number,title,labels,body,issueType,parent,state 2>/dev/null) ||
+  # The live read is the whole set (#1096): the tracker's own count plus one, and a read that comes back that full
+  # is refused. A fixed 400 answered "consistent" over 400 of 739, so a container whose children were older than
+  # the window read as an empty container — the shape this check exists to catch (#911).
+  live_window=$(issues_set_window all)
+  issues_json=$(gh issue list --state all --limit "$live_window" --json number,title,labels,body,issueType,parent,state 2>/dev/null) ||
     issues_die "check-metadata: gh could not read the tracker (--live needs a token)"
+  issues_set_covered "$((live_window - 1))" "$live_window" "$(printf '%s' "$issues_json" | jq 'length' 2>/dev/null)"
 elif [ "$mode" = "issues" ]; then
   [ -f "$issues_file" ] || issues_die "check-metadata: no such issue file: $issues_file"
   issues_json=$(cat "$issues_file")

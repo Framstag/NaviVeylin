@@ -310,15 +310,21 @@ issues_preflight() {
   [ "$status" -eq 0 ] || issues_die "issues: preflight failed: $out"
 }
 
-# How many items the tracker holds, every state: the set a whole-tracker read has to cover (#1093). No label
-# scope, because this number is the size of the tracker, not of one queue's slice of it.
-issues_set_count() {
-  local repo="${ISSUES_REPO:-}" owner name set
+# How many items the tracker holds: the set a whole-tracker read has to cover (#1093). `all` counts every state,
+# `open` the backlog the repairs walk (#1096); no label scope, because this number is the size of a set and not of
+# one queue's slice of it.
+issues_set_count() { # [open|all] → how many items the tracker holds
+  local scope="${1:-all}" query repo="${ISSUES_REPO:-}" owner name set
+  case "$scope" in
+    all) query='query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) { issues(states: [OPEN, CLOSED]) { totalCount } } }' ;;
+    open) query='query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) { issues(states: [OPEN]) { totalCount } } }' ;;
+    *) issues_die "issues_set_count: unknown scope '$scope' — it counts all or open" ;;
+  esac
   [ -n "$repo" ] ||
     issues_die "the tooling could not resolve the repository — the issue set cannot be counted"
   owner="${repo%%/*}"; name="${repo#*/}"
   set=$(gh api graphql \
-    -f query='query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) { issues(states: [OPEN, CLOSED]) { totalCount } } }' \
+    -f query="$query" \
     -f owner="$owner" -f name="$name" \
     --jq '.data.repository.issues.totalCount') || return $?
   case "$set" in
@@ -341,6 +347,28 @@ issues_issue_list() { # [<window>] → the issue list
     window=$((count + 1))
   fi
   gh issue list --state all --limit "$window" --json number,title,labels,body,author
+}
+
+# The window a whole-set read asks for: the tracker's own count plus one, so that a read which comes back that
+# full is visible to `issues_set_covered` (#1093). `open` scopes it to the backlog, `all` to every state (#1096).
+issues_set_window() { # [open|all] → the counted set plus one
+  local set
+  set=$(issues_set_count "${1:-all}") || exit $?
+  printf '%s\n' "$((set + 1))"
+}
+
+# The refusal a whole-set read owes when the tracker answered as full as the window it was asked for (#1093): `gh
+# issue list` answers newest-created first, so a read that fills its own window proves nothing about the items
+# below it, and a caller that reported it would report a set it did not cover. One implementation, because the
+# pass's reader and the three readers that decide on the set (#1096) must refuse in one voice.
+issues_set_covered() { # <counted set> <window> <items read>
+  local set="$1" window="$2" count="$3"
+  case "$count" in
+    ''|*[!0-9]*) issues_die "the tracker answer is not a countable issue array" ;;
+  esac
+  [ "$count" -lt "$window" ] ||
+    issues_refuse "issue-set-uncovered" \
+      "the tracker reports $set issue(s) and the read came back full at $count — refusing a set the read could not cover" >&2
 }
 
 # --------------------------------------------------------------------------- the state namespace
@@ -949,9 +977,7 @@ issues_page_records() { # <scratch dir> → the number of issues read
   count=$(printf '%s' "$issues" | jq 'length')
   # The refusal is a diagnostic, so it goes to stderr: this read is taken inside a command substitution, and a
   # refusal on stdout would be captured as the number the caller thinks it was handed.
-  [ "$count" -lt "$window" ] ||
-    issues_refuse "issue-set-uncovered" \
-      "the tracker reports $set issue(s) and the read came back full at $count — refusing a set the read could not cover" >&2
+  issues_set_covered "$set" "$window" "$count"
   mkdir -p "$dir/bodies"
   : > "$dir/page.tsv"
   printf '%s' "$issues" |

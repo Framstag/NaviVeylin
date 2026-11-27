@@ -113,8 +113,13 @@ if [ -n "$issues_file" ]; then
   issues=$(cat "$issues_file")
 else
   gh_err="$scratch/gh.err"
-  issues=$(gh issue list --limit 400 --json number,title,body,labels,author,comments 2>"$gh_err") ||
+  # The backlog read is the whole backlog (#1096): the open set's own count plus one, refused when the read comes
+  # back that full. A fixed 400 walked the newest 400 open items, so a citation that broke in an older item was
+  # never named, never repaired and never reported, while the item's contract is stated over the backlog.
+  read_window=$(issues_set_window open)
+  issues=$(gh issue list --limit "$read_window" --json number,title,body,labels,author,comments 2>"$gh_err") ||
     issues_die "resolve-stale: gh could not read the tracker: $(cat "$gh_err" 2>/dev/null)"
+  issues_set_covered "$((read_window - 1))" "$read_window" "$(printf '%s' "$issues" | jq 'length' 2>/dev/null)"
 fi
 printf '%s' "$issues" | jq -e 'type == "array"' >/dev/null 2>&1 ||
   issues_die "resolve-stale: the tracker answer is not an issue array"

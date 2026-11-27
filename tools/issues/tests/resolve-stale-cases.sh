@@ -32,6 +32,7 @@ RESOLVE_CASES=(
   'resolver#removedSymbolIsReAnchored'
   'resolver#markersSurviveTheRepair'
   'resolver#repairPostsOneComment'
+  'resolver#anOldItemsCitationIsStillNominated'
   'resolver#unrepairableCitationIsReportedNotWritten'
   'resolver#ambiguityIsReportedNotRepaired'
   'resolver#ambiguityLineNamesTheAmbiguity'
@@ -74,6 +75,7 @@ resolve_run_case() {
     'resolver#removedSymbolIsReAnchored') case_resolver_removedSymbolIsReAnchored ;;
     'resolver#markersSurviveTheRepair') case_resolver_markersSurviveTheRepair ;;
     'resolver#repairPostsOneComment') case_resolver_repairPostsOneComment ;;
+    'resolver#anOldItemsCitationIsStillNominated') case_resolver_anOldItemsCitationIsStillNominated ;;
     'resolver#unrepairableCitationIsReportedNotWritten') case_resolver_unrepairableCitationIsReportedNotWritten ;;
     'resolver#ambiguityIsReportedNotRepaired') case_resolver_ambiguityIsReportedNotRepaired ;;
     'resolver#ambiguityLineNamesTheAmbiguity') case_resolver_ambiguityLineNamesTheAmbiguity ;;
@@ -543,6 +545,32 @@ case_resolver_markersSurviveTheRepair() {
   assert_contains "$after" "<!-- fingerprint: 0123456789abcdef -->" "the fingerprint marker survives"
   assert_contains "$after" "app/src/main/java/com/example/Foo.kt:12" "and the citation was rewritten"
   assert_contains "$after" "the case lives in" "the prose around it is untouched"
+}
+
+# The resolver reads the backlog, not a window (#1096): 405 items, and the one whose citation is stale is the
+# oldest — outside the 400 newest a windowed read covered. A windowed run nominated nothing and reported the backlog
+# clean, so the case asserts the old item is nominated and that the whole backlog was read.
+case_resolver_anOldItemsCitationIsStillNominated() {
+  local tree d out
+  tree=$(tree_with_file)
+  d="$tree/fixture-gh"; mkdir -p "$d"
+  cp "$RESOLVE_ROOT/tools/issues/tests/fixtures/repo.txt" "$d/repo.txt"
+  cp "$RESOLVE_ROOT/tools/issues/tests/fixtures/login.txt" "$d/login.txt"
+  printf '[]\n' > "$d/labels.json"; printf '[]\n' > "$d/prs.json"
+  # One stale item, dated below the 400 newer ones: only the whole-set read reaches it.
+  jq -n '[ range(1; 406) as $n
+           | {number: $n, title: "item \($n)", state: "OPEN", stateReason: "",
+              createdAt: (if $n == 1 then "2019-01-01T00:00:00Z" else "2026-01-01T00:00:00Z" end),
+              body: (if $n == 1 then "the writer is `Ghost.kt:3`" else "no citation here" end),
+              author: {login: "Framstag"},
+              labels: [{name: "class/bug"}, {name: "category/car"}, {name: "status/open"},
+                       {name: "source/agent"}],
+              comments: []}]' > "$d/issues.json"
+  out=$(GH_STUB_DIR="$d" GH_STUB_RECORD="$d/writes.log" resolver "$tree" --json 2>&1) ||
+    fail "the resolver failed: $out"
+  assert_eq "405" "$(jq -r '.read' <<< "$out")" "the whole backlog is read"
+  assert_eq "1" "$(jq -r '.unresolved' <<< "$out")" "the old item's stale citation is reported"
+  assert_eq "1" "$(jq -r '[.items[].issue] | join(" ")' <<< "$out")" "and it is the item below the window"
 }
 
 case_resolver_repairPostsOneComment() {

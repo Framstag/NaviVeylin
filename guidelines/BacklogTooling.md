@@ -61,6 +61,14 @@ Three rules make a check trustworthy rather than noisy:
   that count line: a run a person started records a measurement only when it asked to write, and a hand run — whose
   mode defaults to `--dry-run` — writes nothing and so leaves the row's first exercise unspent.
 
+- **Rule: a check's own read is the tracker's whole set.** The read a row is decided on — its condition list,
+  the record it comments on and the fingerprint lookup that says whether a return is the record or a second filing —
+  is the tracker's own count plus one, refused with `issue-set-uncovered` when the read comes back that full, which
+  is the read the sweep above takes (#1096). A fixed window is a narrowing that fills its window, never a coverage:
+  an item older than the window is invisible to the row that owns it, so the row comments on nothing and files a
+  second item beside it (#1091). The label a row declares stays the whole of its selection — the read decides which
+  items it can reach, not which it owns.
+
 Beside the rows, the same scheduled worker runs the two repairs that are pure functions of the tracker's own
 fields, and one report that is deliberately not one: `tools/issues/labels.sh --apply` (a label outside the
 closed vocabulary), `tools/issues/resolve-stale.sh --apply` (a citation whose target moved), and

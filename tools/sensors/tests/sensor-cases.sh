@@ -33,6 +33,7 @@ SENSOR_CASES=(
   'run#aClearWithNoIssueReachesTheRecord'
   'lib#theRecordIsNotACondition'
   'lib#aRowBoundIsACount'
+  'lib#theRowReadCoversTheWholeSet'
   'report#printsACountingLinePerRow'
   'report#aGreenRowIsNotNever'
   'report#aFiledRowIsReported'
@@ -219,6 +220,7 @@ sensor_run_case() {
     'sensors#aMultipliedKindSetIsListed') case_sensors_aMultipliedKindSetIsListed ;;
     'workflow#theFindingsRecordIsFetchedBeforeItsRowsRun') case_workflow_theFindingsRecordIsFetchedBeforeItsRowsRun ;;
     'workflow#theFindingsReadinessIsReportedApart') case_workflow_theFindingsReadinessIsReportedApart ;;
+    'lib#theRowReadCoversTheWholeSet') case_lib_theRowReadCoversTheWholeSet ;;
     *) printf 'no such shell case: %s\n' "$1" >&2; exit 2 ;;
   esac
 }
@@ -1047,6 +1049,54 @@ case_lib_aRowBoundIsACount() {
     sensors_resolve --registry "$1"
     sensors_registry_problems' _ "$registry" 2>&1)
   assert_empty "$out" "a row that declares a count of at least one is complete: $out"
+}
+
+# The row's own read is decided on the whole tracker, not on a window of its newest items (#1091): the condition
+# list, the fingerprint lookup that says whether a return is the record or a second filing, and the refusal of a read
+# the counted set cannot cover are all the same read. A 401-item fixture carries the row's label on its oldest item
+# only — the newest 400 belong to another row — so the window alone decides whether this row sees its own item, and a
+# row that cannot see it comments on nothing and files beside it instead.
+case_lib_theRowReadCoversTheWholeSet() {
+  local dir registry old_fp out status
+  dir=$(scratch)
+  registry=$(fixture registry.json)
+  old_fp=$(fingerprint_of case alpha)
+  issues_fixture "$dir" "$(jq -nc \
+    --argjson old "$(issue_record 5 OPEN "" fixture-emit \
+      "$(printf 'the row record\n<!-- fingerprint: %s -->' "$old_fp")" '[]' 2026-01-16T00:00:00Z)" \
+    '([range(1;401) as $i
+        | {number: (1000 + $i), title: "a fixture issue", state: "OPEN", stateReason: "",
+           body: "a fixture body", author: {login: "Framstag"},
+           labels: [{name: "class/bug"}, {name: "sensor/fixture-error"}], comments: [],
+           createdAt: (1790000000 + $i | todate)}]
+      + [$old])')"
+
+  # The row's selection is its own label, so the one item it owns is the one older than the newest page.
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" bash -c '
+    source "$SENSORS_ENGINE/lib.sh"
+    sensors_resolve --registry "$1"
+    sensors_issues_of_row fixture-emit | jq -r "map(.number) | @csv"' _ "$registry" 2>&1)
+  status=$?
+  assert_eq "0" "$status" "the row's read succeeds: $out"
+  assert_eq "5" "$out" "the condition list reaches the item older than the newest page: $out"
+
+  # …and the marker lookup over the row's own issues finds the record the row would have commented on.
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" bash -c '
+    source "$SENSORS_ENGINE/lib.sh"
+    sensors_resolve --registry "$1"
+    sensors_issue_for_fingerprint "$(sensors_issues_of_row fixture-emit)" "$2" | jq -r ".number"' \
+    _ "$registry" "$old_fp" 2>&1)
+  assert_eq "5" "$out" "the fingerprint lookup reaches the record the row's read covered: $out"
+
+  # A read the counted set cannot cover is refused, never reported as the row's set (#1093): the count answers short
+  # of the tracker, so the window the read asks for fills and the read refuses.
+  out=$(cd "$SENSORS_REPO_ROOT" && GH_STUB_DIR="$dir" GH_STUB_COUNT_LAG=300 bash -c '
+    source "$SENSORS_ENGINE/lib.sh"
+    sensors_resolve --registry "$1"
+    sensors_issues_of_row fixture-emit' _ "$registry" 2>&1)
+  status=$?
+  assert_eq "3" "$status" "an uncoverable set is a policy refusal: $out"
+  assert_contains "$out" "issue-set-uncovered" "the refusal names the set the read could not cover: $out"
 }
 
 case_report_printsACountingLinePerRow() {

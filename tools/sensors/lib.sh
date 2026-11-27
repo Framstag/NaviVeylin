@@ -467,13 +467,18 @@ sensors_finding_problems() { # <row-json> <finding-json>
 # --------------------------------------------------------------------------- the tracker
 
 # The issues one row owns: the label it declares is the whole selection, so a check can reach nothing
-# else (design D7).
+# else (design D7). The set that label is read over is the tracker's own, never a fixed window of its newest
+# items: the count plus one is asked for, and a read that comes back that full is refused rather than reported
+# as the row's set (#1091, `issues_set_covered`).
 sensors_issues_of_row() { # <row-id> → a JSON array
-  local label
+  local label window issues
   label=$(sensors_label "$1")
+  window=$(issues_set_window all) || exit $?
   # `createdAt` is the instant a filing's own marker carries, so it is requested with the rest: one write
   # produces the issue and the marker, so the issue's creation time is the marker's (issue #668).
-  gh issue list --state all --limit 400 --json number,title,body,labels,state,stateReason,author,comments,createdAt 2>/dev/null |
+  issues=$(gh issue list --state all --limit "$window" --json number,title,body,labels,state,stateReason,author,comments,createdAt 2>/dev/null)
+  issues_set_covered "$((window - 1))" "$window" "$(printf '%s' "$issues" | jq 'length' 2>/dev/null)"
+  printf '%s' "$issues" |
     jq -c --arg label "$label" '[.[]? | select([(.labels // [])[]?.name] | index($label) != null)]'
 }
 

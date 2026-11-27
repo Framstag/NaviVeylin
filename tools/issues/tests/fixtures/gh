@@ -29,14 +29,16 @@
 #   gh api repos/<owner>/<name>/actions/runs/<id>/jobs [--paginate] [--jq …]
 #                                                -> $GH_STUB_DIR/jobs.json (the run's jobs and their steps,
 #                                                    each with started_at/completed_at as the real API gives them)
-#   gh api graphql -f query=… -f label=… [--jq …]
+#   gh api graphql -f query=… [-f label=…] [--jq …]
 #                                                -> the count of $GH_STUB_DIR/issues.json's items carrying the
-#                                                    label the query passes, as `{data:{repository:{issues:
+#                                                    label the query passes, or of every item it holds when the
+#                                                    query names no label, as `{data:{repository:{issues:
 #                                                    {totalCount: N}}}}` — the count the decision queue scopes
-#                                                    its window by (issue #805). A query is answered only when it
-#                                                    names `totalCount`, one label and the fixture's repository,
-#                                                    so a count of a set the fixtures do not describe is refused
-#                                                    rather than answered as zero.
+#                                                    its window by (issue #805) and the count the pass's whole-set
+#                                                    read covers (issue #1093). A query is answered only when it
+#                                                    names `totalCount` and the fixture's repository, so a count of
+#                                                    a set the fixtures do not describe is refused rather than
+#                                                    answered as zero.
 #   gh run download <id> --name … --dir …         -> copies $GH_STUB_DIR/artifact/<id>/ into --dir, so a
 #                                                    scenario decides what an artifact contains
 #
@@ -221,15 +223,22 @@ case "$group" in
         *totalCount*) ;;
         *) refuse "api graphql — the query names no totalCount, no issueTypes and no addBlockedBy" ;;
       esac
-      [ -n "$label" ] || refuse "api graphql — the query carries no label to count"
       need_file repo.txt
       fixture_repo=$(tr -d '\n' < "$(fixture_path repo.txt)")
       [ "$owner" = "${fixture_repo%%/*}" ] && [ "$name" = "${fixture_repo#*/}" ] ||
         refuse "api graphql — the query names ${owner:-no owner}/${name:-no name}, the fixtures hold $fixture_repo"
       need_file issues.json
-      total=$(jq --arg label "$label" '[ .[]
-        | select([(.labels // [])[] | if type == "string" then . else .name end] | index($label) != null)
-      ] | length' "$(fixture_path issues.json)")
+      # Two arms over one fixture: a query naming a label counts that label's set (the decision queue, #805), and a
+      # query naming none counts the whole tracker (the pass's whole-set read, #1093). Both answer all states, as
+      # the query's `states: [OPEN, CLOSED]` asks, and both lag by GH_STUB_COUNT_LAG, because the race a case
+      # watches is between the count and the read and not between two scopes of it.
+      if [ -n "$label" ]; then
+        total=$(jq --arg label "$label" '[ .[]
+          | select([(.labels // [])[] | if type == "string" then . else .name end] | index($label) != null)
+        ] | length' "$(fixture_path issues.json)")
+      else
+        total=$(jq 'length' "$(fixture_path issues.json)")
+      fi
       # A count that lags the list (`GH_STUB_COUNT_LAG`): items filed between the count and the read, which is the
       # race the queue's full-window refusal exists for.
       case "${GH_STUB_COUNT_LAG:-}" in

@@ -392,7 +392,9 @@ Three consequences the design takes as decisions, not accidents:
 - the pass is **bounded per run**, so a project-wide vocabulary change becomes a sequence of bounded runs
   rather than one sweep of the whole backlog;
 - **selection never samples**: it examines every item and skips by an unchanged basis, because skipping an
-  item that had changed would leave a wrong priority in place indefinitely;
+  item that had changed would leave a wrong priority in place indefinitely; and the set it examines is the
+  tracker's own **counted** set — counted before the read, and a read that comes back as full as the window it
+  was asked for is refused rather than reported as coverage;
 - the conditions that **gate** an item are derived from labels at reading time and never stored with the
   priority, because they move far more often than a score does.
 

@@ -138,6 +138,7 @@ ISSUES_SHELL_CASES=(
   'basis#changesWhenTheCitedCodeGoesAway'
   'basis#anAgedScoreIsRevisited'
   'prioritise#readsEveryIssueAndSkipsByBasis'
+  'prioritise#readsEveryIssueNotTheNewestPage'
   'prioritise#capsTheDueSet'
   'prioritise#secondRunScoresNothing'
   'prioritise#writesLabelAndMarkerTogether'
@@ -319,6 +320,7 @@ issues_run_shell_case() {
     'basis#changesWhenTheCitedCodeGoesAway') case_basis_changesWhenTheCitedCodeGoesAway ;;
     'basis#anAgedScoreIsRevisited') case_basis_anAgedScoreIsRevisited ;;
     'prioritise#readsEveryIssueAndSkipsByBasis') case_prioritise_readsEveryIssueAndSkipsByBasis ;;
+    'prioritise#readsEveryIssueNotTheNewestPage') case_prioritise_readsEveryIssueNotTheNewestPage ;;
     'prioritise#capsTheDueSet') case_prioritise_capsTheDueSet ;;
     'prioritise#secondRunScoresNothing') case_prioritise_secondRunScoresNothing ;;
     'prioritise#writesLabelAndMarkerTogether') case_prioritise_writesLabelAndMarkerTogether ;;
@@ -2705,6 +2707,32 @@ case_prioritise_readsEveryIssueAndSkipsByBasis() {
   assert_eq "1" "$(jq -r '[.records[] | select(.due)] | length' <<< "$stored")" "and the records agree"
   assert_eq "0" "$(jq -r '.writes | length' <<< "$stored")" "nothing is written for the four skipped"
   [ ! -s "$log" ] || fail "the run wrote to the tracker: $(cat "$log")"
+  return 0
+}
+
+# The set the pass reads is the tracker's own, counted before it is read (#1093). The window used to be the fixed
+# 400 `gh issue list` was asked for, and the guard that caught a partial read compared the read to the length of
+# that same answer — so on a 405-item tracker the oldest five were never examined and the pass reported success.
+# `#1` rises with `metadata_issues`' own order, so it is the oldest item and sits outside the newest 400.
+case_prioritise_readsEveryIssueNotTheNewestPage() {
+  local dir out status
+  dir=$(scratch); metadata_issues 405 > "$dir/issues.json"
+  export GH_STUB_DIR="$dir"
+
+  out=$(bash "$ISSUES_ENGINE/prioritise.sh" --json --profile "$(profile_path)") ||
+    fail "the plan run failed: $out"
+  assert_eq "405" "$(jq -r '.read' <<< "$out")" "the pass reads the set the tracker holds, not a window of it"
+  assert_eq "1" "$(jq -r '[.records[] | select(.issue == 1)] | length' <<< "$out")" \
+    "and the oldest item, outside the newest 400, is one of the records examined"
+
+  # Items filed between the count and the read: the list comes back as full as the window it was asked for, so
+  # the read overran the set it counted and nothing is examined.
+  export GH_STUB_COUNT_LAG=1
+  out=$(bash "$ISSUES_ENGINE/prioritise.sh" --json --profile "$(profile_path)" 2>&1); status=$?
+  assert_eq "3" "$status" "a read the counted set cannot cover is a refusal: $out"
+  assert_contains "$out" "issue-set-uncovered" "and the refusal names it"
+  assert_contains "$out" "404" "stating the set the tracker counted"
+  unset GH_STUB_COUNT_LAG
   return 0
 }
 

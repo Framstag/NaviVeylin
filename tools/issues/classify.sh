@@ -80,7 +80,9 @@ started_ms=$(issues_now_ms)
 scratch=$(mktemp -d) || issues_die "classify: cannot create a scratch directory"
 trap 'rm -rf "$scratch"' EXIT
 
-read_count=$(issues_page_records "$scratch")
+# The read is refused, never partial (#1093): a count the read came back full against exits 3 here, and the
+# assignment carries that status, so the pass stops with the refusal instead of examining what did arrive.
+read_count=$(issues_page_records "$scratch") || exit $?
 : > "$scratch/queue.tsv"
 : > "$scratch/refusals.tsv"
 

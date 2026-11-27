@@ -310,9 +310,37 @@ issues_preflight() {
   [ "$status" -eq 0 ] || issues_die "issues: preflight failed: $out"
 }
 
+# How many items the tracker holds, every state: the set a whole-tracker read has to cover (#1093). No label
+# scope, because this number is the size of the tracker, not of one queue's slice of it.
+issues_set_count() {
+  local repo="${ISSUES_REPO:-}" owner name set
+  [ -n "$repo" ] ||
+    issues_die "the tooling could not resolve the repository — the issue set cannot be counted"
+  owner="${repo%%/*}"; name="${repo#*/}"
+  set=$(gh api graphql \
+    -f query='query($owner: String!, $name: String!) { repository(owner: $owner, name: $name) { issues(states: [OPEN, CLOSED]) { totalCount } } }' \
+    -f owner="$owner" -f name="$name" \
+    --jq '.data.repository.issues.totalCount') || return $?
+  case "$set" in
+    ''|*[!0-9]*)
+      issues_die "the tracker did not answer how many issues it holds (got '$set') — there is no set to cover" ;;
+  esac
+  printf '%s\n' "$set"
+}
+
 # The live issue list, as the dedup and selection queries read it.
-issues_issue_list() {
-  gh issue list --state all --limit 400 --json number,title,labels,body,author
+#
+# The window is the tracker's own count plus one unless the caller names one (#1093): `gh issue list` answers
+# newest-created first, so the fixed 400 asked for here dropped the oldest items while every caller reported the
+# set as read. The one item beyond the count is what makes a full read visible — `issues_page_records` refuses a
+# read that comes back that full, and a caller that counts for itself passes the window it counted.
+issues_issue_list() { # [<window>] → the issue list
+  local window="${1:-}" count
+  if [ -z "$window" ]; then
+    count=$(issues_set_count) || exit $?
+    window=$((count + 1))
+  fi
+  gh issue list --state all --limit "$window" --json number,title,labels,body,author
 }
 
 # --------------------------------------------------------------------------- the state namespace
@@ -899,18 +927,31 @@ issues_basis() { # <labels: one per line> <body> <occurrence> <ttl-bucket> <labe
 # --------------------------------------------------------------------------- reading the tracker
 #
 # Both halves of the pass read the tracker through this function, so "we examined every issue" is one rule
-# with one implementation: the whole page set in one call, then a refusal if any issue failed to arrive —
-# skipping an item that had changed would leave a wrong band in place indefinitely, so the selection is by
-# *basis*, never by sampling or an early exit (spec "Selection never samples"; design D3, D9).
+# with one implementation: the count the tracker reports, then the whole page set in one call, then a refusal if
+# the read came back as full as the window it was asked for or if any issue failed to arrive — skipping an item
+# that had changed would leave a wrong band in place indefinitely, so the selection is by *basis*, never by
+# sampling or an early exit (spec "Selection never samples"; design D3, D9).
+#
+# The set is counted first (#1093). The window used to be a fixed 400 and the guard compared the read to the
+# length of that same answer, so on a tracker larger than the constant the oldest items were never examined and
+# the pass reported success. One more than the counted set is asked for, so a read that comes back that full is a
+# read the tracker overran — refused, never reported as coverage.
 #
 # The answer lands in `<dir>/page.tsv` as number, labels, title (base64), body (base64) — base64 because
 # an issue body contains newlines, tabs and quotes — with the decoded bodies under `<dir>/bodies/<number>`.
 issues_page_records() { # <scratch dir> → the number of issues read
-  local dir="$1" issues count read_count
-  issues=$(issues_issue_list) || issues_die "the tooling could not read the tracker"
+  local dir="$1" issues set window count read_count
+  set=$(issues_set_count) || exit $?
+  window=$((set + 1))
+  issues=$(issues_issue_list "$window") || issues_die "the tooling could not read the tracker"
   printf '%s' "$issues" | jq -e 'type == "array"' >/dev/null 2>&1 ||
     issues_die "the tracker answer is not an issue array"
   count=$(printf '%s' "$issues" | jq 'length')
+  # The refusal is a diagnostic, so it goes to stderr: this read is taken inside a command substitution, and a
+  # refusal on stdout would be captured as the number the caller thinks it was handed.
+  [ "$count" -lt "$window" ] ||
+    issues_refuse "issue-set-uncovered" \
+      "the tracker reports $set issue(s) and the read came back full at $count — refusing a set the read could not cover" >&2
   mkdir -p "$dir/bodies"
   : > "$dir/page.tsv"
   printf '%s' "$issues" |

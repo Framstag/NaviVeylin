@@ -98,7 +98,9 @@ trap 'rm -rf "$scratch"' EXIT
 # spec "Selection never samples"). A body arrives base64-encoded so that a newline, a tab or a quote in it
 # cannot be mistaken for a field boundary.
 
-read_count=$(issues_page_records "$scratch")
+# The read is refused, never partial (#1093): a count the read came back full against exits 3 here, and the
+# assignment carries that status, so the pass stops with the refusal instead of examining what did arrive.
+read_count=$(issues_page_records "$scratch") || exit $?
 : > "$scratch/records.tsv"
 : > "$scratch/refusals.tsv"
 

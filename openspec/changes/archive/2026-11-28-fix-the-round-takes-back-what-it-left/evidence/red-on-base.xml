@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop/tests (a round takes back its difference, on the base commit)" tests="1" failures="1" errors="0" time="96" run="2026-11-27">
+  <testcase classname="tools/loop/tests" name="run#childWriteOutsideTheWorktreeIsNoted">
+    <failure message="no path a child of the run wrote is left in the caller's tree: expected '0', got '3'">run#childWriteOutsideTheWorktreeIsNoted|   no path a child of the run wrote is left in the caller's tree: expected '0', got '3'
+--- run#childWriteOutsideTheWorktreeIsNoted[0] (exit 1)
+  no path a child of the run wrote is left in the caller's tree: expected '0', got '3'
+FAIL run#childWriteOutsideTheWorktreeIsNoted
+loop-selftest: 1 of 1 cases failed</failure>
+  </testcase>
+  <system-out>tools/loop/tests/loop-selftest.sh --case run#childWriteOutsideTheWorktreeIsNoted: FAIL (1 of 1 cases failed)
+tools/loop/child.sh and tools/loop/leftovers.sh were put back to 9be4a4c1afc2f899d7b71ac860aff43df8e45434 for this run and restored afterwards</system-out>
+</testsuite>

@@ -1,0 +1,5 @@
+run#childWriteOutsideTheWorktreeIsNoted|   no path a child of the run wrote is left in the caller's tree: expected '0', got '3'
+--- run#childWriteOutsideTheWorktreeIsNoted[0] (exit 1)
+  no path a child of the run wrote is left in the caller's tree: expected '0', got '3'
+FAIL run#childWriteOutsideTheWorktreeIsNoted
+loop-selftest: 1 of 1 cases failed

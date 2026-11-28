@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="tools/loop/tests (a round takes back its difference, on the change)" tests="1" failures="0" errors="0" time="101" run="2026-11-27">
+  <testcase classname="tools/loop/tests" name="run#childWriteOutsideTheWorktreeIsNoted"/>
+  <system-out>tools/loop/tests/loop-selftest.sh --case run#childWriteOutsideTheWorktreeIsNoted: PASS (1 of 1 cases passed)</system-out>
+</testsuite>

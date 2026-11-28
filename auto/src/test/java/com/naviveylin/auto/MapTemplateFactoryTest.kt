@@ -21,10 +21,10 @@ class MapTemplateFactoryTest {
 
     private val noop: () -> Unit = {}
 
-    private fun menuContent(): ListTemplate = MapTemplateFactory.buildMenuContent(testCarContext(), noop, noop, noop, noop, noop, noop, noop)
+    private fun menuContent(): ListTemplate = MapTemplateFactory.buildMenuContent(testCarContext(), noop, noop, noop, noop, noop, noop)
 
     private fun degradedMenuContent(): ListTemplate =
-        MapTemplateFactory.buildMenuContent(testCarContext(), noop, noop, noop, noop, noop, noop, noop, mapUnavailable = true)
+        MapTemplateFactory.buildMenuContent(testCarContext(), noop, noop, noop, noop, noop, noop, mapUnavailable = true)
 
     private fun controller(): MapController = MapController.Builder().build()
 
@@ -43,19 +43,26 @@ class MapTemplateFactoryTest {
     }
 
     @Test
-    fun menuHasSevenClickableRowsInOrder() {
+    fun theMenuCarriesSixRowsWithNoStarredEntry() {
+        // Spec: auto-map-layout — Content box acts as the app menu: one row per destination the menu
+        // opens. The starred level is opened from the all-favorites group level's first row, so the
+        // menu spends no row on a second entry point to it (issue #1111).
         val content = menuContent()
         val rows = content.singleList!!.items
-        assertEquals(7, rows.size)
+        assertEquals(6, rows.size)
         val titles = rows.map { (it as androidx.car.app.model.Row).title.toString() }
         assertEquals(
             listOf(
-                "Free driving", "Starred favorites", "All favorites",
+                "Free driving", "All favorites",
                 "Search for POIs", "Search history", "Diagnostics", "About"
             ),
             titles
         )
         assertTrue(rows.all { (it as androidx.car.app.model.Row).onClickDelegate != null })
+        assertTrue(
+            "no row carries the starred wording any more",
+            titles.none { it == testCarContext().getString(R.string.starred_favorites) }
+        )
     }
 
     @Test
@@ -72,7 +79,7 @@ class MapTemplateFactoryTest {
             rows.first().title.toString()
         )
         assertEquals("not clickable", null, rows.first().onClickDelegate)
-        assertEquals("the normal rows stay", 8, rows.size)
+        assertEquals("the normal rows stay", 7, rows.size)
     }
 
     @Test
@@ -137,7 +144,6 @@ class MapTemplateFactoryTest {
         val content = MapTemplateFactory.buildMenuContent(
             testCarContext(),
             onFreeDriving = { clicked = true },
-            onStarredFavorites = noop,
             onAllFavorites = noop,
             onPoiSearch = noop,
             onSearchHistory = noop,

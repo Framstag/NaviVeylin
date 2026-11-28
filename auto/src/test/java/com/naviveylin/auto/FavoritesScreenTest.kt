@@ -593,6 +593,84 @@ class FavoritesScreenTest {
     }
 
     @Test
+    fun theGroupLevelCarriesTheStarredEntryFirst() = runTest(mainDispatcherRule.dispatcher) {
+        // Spec: auto-favorites — The all-favorites mode lists the starred entry first: one row for the
+        // starred level, ahead of the groups, under the count wording the group rows use, and part of
+        // the ordered sequence the page row partitions (issue #1111).
+        hostCapacity = 2
+        favoritesProvider.flow.value = mapOf(
+            "Cities" to listOf(fav("Rome")),
+            "Work" to listOf(fav("Office"))
+        )
+        favoritesProvider.order.value = listOf("Cities", "Work")
+        favoritesProvider.starred.value = starred("Cities" to "Rome", "Work" to "Office")
+        val screen = newScreen()
+        advanceUntilIdle()
+
+        val first = screen.onGetTemplate()
+        val rows = rows(first)
+        assertEquals("Starred favorites", rows.first().title.toString())
+        assertEquals(
+            carContext.resources.getQuantityString(R.plurals.favorite_count, 2, 2),
+            rows.first().texts.single().toString()
+        )
+        assertTrue("the starred entry is clickable", rows.first().onClickDelegate != null)
+        assertEquals(
+            "the starred entry leads the groups",
+            listOf("Starred favorites", "Cities", carContext.getString(R.string.more_items, 1)),
+            singleTitles(first)
+        )
+
+        tapRow(first, carContext.getString(R.string.more_items, 1))
+        advanceUntilIdle()
+        val second = startPushedFavorites().single()
+        advanceUntilIdle()
+        assertEquals(
+            "the starred entry keeps its place in the pages",
+            listOf("Work"),
+            singleTitles(second.onGetTemplate())
+        )
+    }
+
+    @Test
+    fun noStarredEntryWhileNothingIsStarred() = runTest(mainDispatcherRule.dispatcher) {
+        // Spec: auto-favorites — The all-favorites mode lists the starred entry first: a store with
+        // nothing starred carries no such row, so the level stays its groups alone (issue #1111).
+        favoritesProvider.flow.value = mapOf("Cities" to listOf(fav("Rome")))
+        favoritesProvider.order.value = listOf("Cities")
+        val screen = newScreen()
+        advanceUntilIdle()
+
+        assertEquals(listOf("Cities"), singleTitles(screen.onGetTemplate()))
+    }
+
+    @Test
+    fun theStarredEntryOpensTheStarredLevel() = runTest(mainDispatcherRule.dispatcher) {
+        // Spec: auto-favorites — The all-favorites mode lists the starred entry first: the row is the
+        // single entry point to the starred level, which keeps its own screen and stored order
+        // (issue #1111).
+        favoritesProvider.flow.value = mapOf(
+            "Cities" to listOf(fav("Rome")),
+            "Work" to listOf(fav("Office"))
+        )
+        favoritesProvider.order.value = listOf("Cities", "Work")
+        favoritesProvider.starred.value = starred("Work" to "Office")
+        val screen = newScreen()
+        advanceUntilIdle()
+
+        tapRow(screen.onGetTemplate(), "Starred favorites")
+        advanceUntilIdle()
+        val starredLevel = startPushedFavorites().single()
+        advanceUntilIdle()
+
+        assertEquals(
+            "Starred favorites",
+            starredLevel.onGetTemplate().header!!.title.toString()
+        )
+        assertEquals(listOf("Office"), singleTitles(starredLevel.onGetTemplate()))
+    }
+
+    @Test
     fun anEmptyGroupIsNotListedOnTheCar() = runTest(mainDispatcherRule.dispatcher) {
         // Spec: auto-favorites — A group holding no favorites is not listed. No car affordance can
         // move a favorite into a group the driver just created, so a car row for it would be a dead

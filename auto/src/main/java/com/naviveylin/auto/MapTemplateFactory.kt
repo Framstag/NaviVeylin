@@ -35,7 +35,6 @@ object MapTemplateFactory {
     fun buildMenuContent(
         carContext: CarContext,
         onFreeDriving: () -> Unit,
-        onStarredFavorites: () -> Unit,
         onAllFavorites: () -> Unit,
         onPoiSearch: () -> Unit,
         onSearchHistory: () -> Unit,
@@ -66,12 +65,6 @@ object MapTemplateFactory {
                     Row.Builder()
                         .setTitle(carContext.getString(R.string.free_driving))
                         .setOnClickListener(onFreeDriving)
-                        .build()
-                )
-                .addItem(
-                    Row.Builder()
-                        .setTitle(carContext.getString(R.string.starred_favorites))
-                        .setOnClickListener(onStarredFavorites)
                         .build()
                 )
                 .addItem(

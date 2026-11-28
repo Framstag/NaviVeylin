@@ -281,31 +281,70 @@ class FavoritesScreen(
         return when {
             starredOnly -> starredOrder.map { LevelRow.Favorite(it.favorite) }
             group != null -> favoritesData[group].orEmpty().map { LevelRow.Favorite(it) }
-            else -> orderedGroupNames(groupOrder, favoritesData.keys).mapNotNull { name ->
-                val favorites = favoritesData[name].orEmpty()
-                if (favorites.isEmpty()) {
-                    // A group holding no favorites is not listed on the car, because no car
-                    // affordance can move a favorite into one (spec: auto-favorites — A group
-                    // holding no favorites is not listed).
-                    null
-                } else {
-                    LevelRow.Group(name = name, count = favorites.size)
+            else -> buildList {
+                // The starred level's single entry point on the car: its row leads the group level and
+                // pages with the groups, so it is part of the ordered sequence the page row partitions
+                // (spec: auto-favorites — The all-favorites mode lists the starred entry first).
+                if (starredOrder.isNotEmpty()) {
+                    add(LevelRow.Starred(count = starredOrder.size))
                 }
+                addAll(
+                    orderedGroupNames(groupOrder, favoritesData.keys).mapNotNull { name ->
+                        val favorites = favoritesData[name].orEmpty()
+                        if (favorites.isEmpty()) {
+                            // A group holding no favorites is not listed on the car, because no car
+                            // affordance can move a favorite into one (spec: auto-favorites — A group
+                            // holding no favorites is not listed).
+                            null
+                        } else {
+                            LevelRow.Group(name = name, count = favorites.size)
+                        }
+                    }
+                )
             }
         }
     }
 
-    /** One row of a level: a group row on the group level, a favorite row on every level. */
+    /** One row of a level: the starred row and group rows on the group level, favorites elsewhere. */
     private sealed interface LevelRow {
+        data class Starred(val count: Int) : LevelRow
         data class Group(val name: String, val count: Int) : LevelRow
         data class Favorite(val favorite: FavoriteLocation) : LevelRow
     }
 
-    /** Render one level row: a group opens its own level, a favorite starts the destination picker. */
+    /** Render one level row: the starred row and a group open a level, a favorite starts the picker. */
     private fun rowFor(row: LevelRow): Row = when (row) {
+        is LevelRow.Starred -> starredRow(row)
         is LevelRow.Group -> groupRow(row)
         is LevelRow.Favorite -> favoriteRow(row.favorite)
     }
+
+    /**
+     * The starred level's only entry point on the car: it leads the group level, under the count wording
+     * the group rows use, and opens the starred level, which keeps its own screen and stored order
+     * (spec: auto-favorites — The all-favorites mode lists the starred entry first; issue #1111).
+     */
+    private fun starredRow(row: LevelRow.Starred): Row = Row.Builder()
+        .setTitle(carContext.getString(R.string.starred_favorites))
+        .addText(
+            carContext.resources.getQuantityString(
+                R.plurals.favorite_count,
+                row.count,
+                row.count
+            )
+        )
+        .setOnClickListener {
+            Log.d(TAG, "Starred favorites selected")
+            armScreenPush(carContext, scope, "FavoritesScreen (starred)") {
+                FavoritesScreen(
+                    carContext = carContext,
+                    navigationViewModel = navigationViewModel,
+                    starredOnly = true,
+                    backgroundDispatcher = backgroundDispatcher
+                )
+            }
+        }
+        .build()
 
     /**
      * A group row: the group name and the favorite count under the wording the phone's group card

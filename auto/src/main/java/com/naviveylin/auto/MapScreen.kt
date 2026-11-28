@@ -550,11 +550,6 @@ class MapScreen(
                     FreeDrivingScreen(carContext, resolvedDark)
                 }
             },
-            onStarredFavorites = {
-                armScreenPush(carContext, scope, "FavoritesScreen (starred)") {
-                    FavoritesScreen(carContext, navigationViewModel, starredOnly = true)
-                }
-            },
             onAllFavorites = {
                 armScreenPush(carContext, scope, "FavoritesScreen") {
                     FavoritesScreen(carContext, navigationViewModel)

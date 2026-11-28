@@ -403,6 +403,71 @@ discard_kept_worktree() { # discard_kept_worktree <the name this repair prints i
   loop_emit reset-clean label="$label" worktree="$worktree"
 }
 
+# The caller's tree, put back where the round found it (issue #1098). A phase can write the project's own tree by
+# absolute path, and the run's only answer to that was a sentence: the difference was recorded and left standing, so
+# the next run's start-time check read its own child's leftover as an edit made while it was not running and stopped
+# (`tools/loop/run.sh:645-665`). Two such refusals in a row stop the chain — measured four times in two days, #1080's
+# `tools/loop/evidence-check.sh` and its spec hunk, #1034's five files and its archive directory. So the difference is
+# removed where it is recorded: tracked paths restored with `git checkout --`, untracked paths removed, the record
+# taken *before* the restore because that line is what a person acts on.
+#
+# The paths are the difference's — from the patch the round kept beside the item when there is one, and from the two
+# readings otherwise. Every one of them is removed, placed or not: the writes this was measured on all read
+# `attributed=none`, because a worker's own shell in the project is deliberately unplaced, so a restore limited to
+# placed differences would remove none of them — the owner's decision of 2026-11-26 on #1098. Two exclusions are owed
+# and are not a judgement about the write: a path the caller had already changed before the round began is left where
+# it is and named, because `checkout --` would discard the caller's own edit with the child's (that tree is what the
+# start-time refusal still owes a reader, #988); and the run's own state directory is left alone, for the reason the
+# same refusal leaves it alone — this process wrote it (`run.sh:649-654`).
+restore_project_difference() { # restore_project_difference <report file> <before> <after> → 0 when every path is back
+  local report="$1" before="$2" after="$3"
+  local patch paths p entry now clause restored="" kept="" state_rel state_dir_rel rc=0
+  patch="$(dirname "$report")/outside-write/$(basename "$report" .md).patch"
+  if [ -f "$patch" ]; then
+    # What the round kept (#1092): the paths its patch names, taken from the two headers `git diff` writes for a file.
+    paths=$(sed -n 's{^diff --git a/.* b/}{}p;s{^+++ b/}{}p' "$patch" | sed 's{\t.*$}{}' | sort -u)
+  else
+    paths=$(project_state_diff "$before" "$after" | sed '/^work-tree=/d;s/^...//;s/ -> /\n/' | sort -u)
+  fi
+  state_rel="${LOOP_STATE_FILE#"$LOOP_ROOT"/}"
+  state_dir_rel=$(dirname "$state_rel")
+  while IFS= read -r p; do
+    [ -n "$p" ] || continue
+    case "$p" in \"*\") p=$(printf '%s' "$p" | sed 's/^"/";s/"$//') ;; esac
+    # the run's own record, which is the tree's dirt only because a project need not gitignore `.pi/`
+    [ -n "$state_dir_rel" ] && [ "$state_dir_rel" != "." ] || state_dir_rel=""
+    case "$p" in "$state_dir_rel"|"$state_dir_rel"/*) continue ;; esac
+    # a path the caller had already changed is theirs, not the round's
+    entry=$(printf '%s\n' "$before" | sed '/^work-tree=/d;s/^...//' | grep -F -x -- "$p" | head -1)
+    if [ -n "$entry" ]; then kept="$kept$p "; continue; fi
+    if printf '%s\n' "$after" | grep -F -x -q -- "?? $p"; then
+      git -C "$LOOP_ROOT" clean -qfd -- "$p" >/dev/null 2>&1
+    else
+      git -C "$LOOP_ROOT" checkout -- "$p" >/dev/null 2>&1
+    fi
+    restored="$restored$p "
+  done <<EOF
+$paths
+EOF
+  # What the tree still reads as a difference after the restore is a path this could not take back — a permission, a
+  # path outside the root, or a writer that wrote again while it ran — and it is named rather than assumed clean: the
+  # next round's start-time check reads this same reading and refuses on it.
+  now=$(project_state)
+  if project_state_differs "$before" "$now"; then
+    clause=$(outside_write_clause_of "$before" "$now")
+    printf 'LOOP-OUTSIDE-WRITE-KEPT: %s\n' "$clause" >> "$report"
+    rc=1
+  fi
+  if [ -n "$restored" ]; then
+    printf 'LOOP-OUTSIDE-WRITE-RESTORED: %s\n' "${restored% }" >> "$report"
+  fi
+  if [ -n "$kept" ]; then
+    printf 'LOOP-OUTSIDE-WRITE-NOT-OURS: %s — changed before this round began, so nothing of it was removed\n' "${kept% }" \
+      >> "$report"
+  fi
+  return "$rc"
+}
+
 # The only push in the loop, and only when the run asked to publish (D4): no pull request is opened by
 # this change at all. It runs after the item is done, and a closed item's branch is gone by then — the run
 # merged it and `release-branch` deleted it a few lines earlier. Pushing a refspec whose local ref no longer

@@ -10877,17 +10877,18 @@ case_run_childWriteOutsideTheWorktreeIsNoted() {
   local d p out note
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
-  # The measured shape: another process wrote the project's own tree while a child ran, and took it back again
-  # before the item landed. The run records the difference twice — the worker's write and the reviewer's
-  # removal — and the item keeps the outcome its work earned, because a difference is not a verdict about the
-  # child the run started (#274, #276, #285). The tail child writes a **different** path (issue #744): a file the
-  # gate child already made dirty is no difference to the run's reading, which compares the set of paths, and the
-  # second child's own write would go unrecorded.
+  # The measured shape: another process wrote the project's own tree while a child ran. The run records the difference
+  # per phase — the worker's write, the tail child's and the review round's, each under its own name — and the item
+  # keeps the outcome its work earned, because a difference is not a verdict about the child the run started (#274,
+  # #276, #285). Each child writes a **different** path (issue #744): a file the child before it already wrote is no
+  # difference to the run's reading, which compares the set of paths, and the second child's own write would go
+  # unrecorded. Every one of those paths is taken back when its own round ends (#1098), so the removal a later phase
+  # used to perform is not what this case reads: each child leaves a path of its own.
   stub_write "$d" "$STUB_WORKER_REPORT" 'VERDICT: PASS' \
     'case "$1" in
        worker-prompt.md) printf "stray\n" >> "$LOOP_CHILD_ROOT/demo-owned.txt" ;;
        worker-tail*) printf "tail\n" >> "$LOOP_CHILD_ROOT/demo-tail.txt" ;;
-       reviewer*) rm -f "$LOOP_CHILD_ROOT/demo-owned.txt" "$LOOP_CHILD_ROOT/demo-tail.txt" ;;
+       reviewer*) printf "review\n" >> "$LOOP_CHILD_ROOT/demo-review.txt" ;;
      esac'
   out=$(run_loop "$p" --items 1 --minutes 90 --review on 2>&1) || fail "the run itself failed"
   assert_eq "done" "$(jq -r '.items[0].result' "$(state_file "$p")")" \
@@ -10908,6 +10909,16 @@ case_run_childWriteOutsideTheWorktreeIsNoted() {
   assert_contains "$out" "loop: note ·" "the difference is on the transcript a person tails, not only in the state"
   assert_contains "$(cat "$(find "$p/.pi/issue-loop/items" -name 'worker-report.md' | head -1)")" "LOOP-OUTSIDE-WRITE:" \
     "the child's own transcript carries it as a machine-readable line, not only the run's note"
+  # The round's difference is taken back before the round ends (issue #1098): the record above is written first, then
+  # the caller's tree is returned to the state the round found it in, because the next round's start-time check cannot
+  # tell a child's leftover from an edit made while the run was not running and stops the chain on it (`run.sh:645`).
+  assert_eq "0" "$(git -C "$p" status --porcelain -uall | grep -c 'demo-' || true)" \
+    "no path a child of the run wrote is left in the caller's tree"
+  assert_eq "" "$(cat "$p/demo-owned.txt" 2>/dev/null)" \
+    "…and the file the worker's own shell wrote is gone from it, the record being what survives"
+  assert_contains "$(cat "$(find "$p/.pi/issue-loop/items" -name 'worker-report.md' | head -1)")" \
+    "LOOP-OUTSIDE-WRITE-RESTORED: demo-owned.txt" \
+    "the restore is on the transcript beside the record, naming the path it took back"
   assert_eq "1" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "and the item is closed"
 }
 

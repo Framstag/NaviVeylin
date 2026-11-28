@@ -316,6 +316,15 @@ What it does **not** claim: the project's own tree is not the child's, so a diff
 it taken around a child is recorded and not turned into a verdict. The transcript gains one line naming what
 changed — the differing status entries and any process whose working directory is inside the project but outside
 the worktree — the item keeps the outcome its work earned, and a review round that ran during a difference stands.
+Nothing of that difference is left standing in the tree (issue #1098): the record is written first, then every path
+the difference names is taken back before the round ends — a tracked path restored with `git checkout --`, an
+untracked one deleted — from the round's own kept patch where it has one, and from the two readings otherwise. Every
+path is removed, placed or not, because the writes this was measured on all read `attributed=none`: a worker's own
+shell in the project is deliberately unplaced, so a removal limited to placed differences would remove none of them.
+Two paths are left where they stand and named on the transcript instead — the run's own state directory, which this
+process wrote, and a path the caller had already changed before the round began, which `checkout --` would discard
+with the child's — and what the reading still shows after the removal is named rather than assumed clean, because
+the next round's start-time check reads the same tree and refuses on it.
 Measured 2026-10-23 (#274, #276, #285): 5 of 139 items across four runs were blocked by that comparison, and in
 the three cases of that day the child had written nothing there — every write target in the three transcripts lay
 under `.pi/worktrees/loop/` or the item's evidence directory. The comparison measures a tree the run itself

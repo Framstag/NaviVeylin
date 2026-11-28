@@ -679,6 +679,10 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
     outside_write_line "$before" "$after" >> "$2"
     [ -n "$outside_write_note" ] ||
       outside_write_note="the project tree changed while this process ran: $(outside_write_clause_of "$before" "$after")"
+    # …and the difference is taken back, not only recorded (issue #1098): the next round's start-time check reads this
+    # same tree and refuses on a path it cannot place, so the round that made it removes it. The record above is
+    # written first, so the item still carries what the round took back and a person can act on it.
+    restore_project_difference "$2" "$before" "$after" || true
   fi
   return "$rc"
 }

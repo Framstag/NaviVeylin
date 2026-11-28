@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.FavoritesScreenTest" tests="41" skipped="0" failures="2" errors="0" timestamp="2026-11-28T00:38:53.056Z" hostname="dingens" time="14.893">
+  <properties/>
+  <testcase name="starredModeRendersTheStoredStarredOrderAsOneList" classname="com.naviveylin.auto.FavoritesScreenTest" time="11.935"/>
+  <testcase name="theAllFavoritesModeStartsAtTheGroupLevel" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.344"/>
+  <testcase name="aGroupReorderUpdatesTheRowsInPlace" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.085"/>
+  <testcase name="starredModeWithNothingStarredShowsTheHint" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.068"/>
+  <testcase name="unnamedFavoriteRowUsesTheResource" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.07"/>
+  <testcase name="listFollowsTheStoredFavoriteOrder" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.076"/>
+  <testcase name="aReorderedStoreUpdatesTheListInPlace" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.061"/>
+  <testcase name="aReadyStoresPublishedStateIsShown" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.113"/>
+  <testcase name="groupRowsShowTheNameAndCount" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.086"/>
+  <testcase name="theGroupLevelCarriesTheStarredEntryFirst" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.077">
+    <failure message="org.junit.ComparisonFailure: expected:&lt;[Starred favorit]es&gt; but was:&lt;[Citi]es&gt;" type="org.junit.ComparisonFailure">org.junit.ComparisonFailure: expected:&lt;[Starred favorit]es&gt; but was:&lt;[Citi]es&gt;
+	at org.junit.Assert.assertEquals(Assert.java:117)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.naviveylin.auto.FavoritesScreenTest$theGroupLevelCarriesTheStarredEntryFirst$1.invokeSuspend(FavoritesScreenTest.kt:612)
+	at com.naviveylin.auto.FavoritesScreenTest$theGroupLevelCarriesTheStarredEntryFirst$1.invoke(FavoritesScreenTest.kt)
+	at com.naviveylin.auto.FavoritesScreenTest$theGroupLevelCarriesTheStarredEntryFirst$1.invoke(FavoritesScreenTest.kt)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$1.invokeSuspend(TestBuilders.kt:318)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+	at kotlinx.coroutines.test.TestDispatcher.processEvent$kotlinx_coroutines_test(TestDispatcher.kt:24)
+	at kotlinx.coroutines.test.TestCoroutineScheduler.tryRunNextTaskUnless$kotlinx_coroutines_test(TestCoroutineScheduler.kt:99)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$workRunner$1.invokeSuspend(TestBuilders.kt:327)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:47)
+	at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
+	at kotlinx.coroutines.test.TestBuildersJvmKt.createTestResult(TestBuildersJvm.kt:10)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:310)
+	at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(Unknown Source)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:168)
+	at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(Unknown Source)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0$default(TestBuilders.kt:160)
+	at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0$default(Unknown Source)
+	at com.naviveylin.auto.FavoritesScreenTest.theGroupLevelCarriesTheStarredEntryFirst(FavoritesScreenTest.kt:596)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:26)
+	at org.junit.rules.TestWatcher$1.evaluate(TestWatcher.java:61)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:502)
+	at org.robolectric.internal.SandboxTestRunner$2.lambda$evaluate$2(SandboxTestRunner.java:285)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:104)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="aGroupTheOrderDoesNotNameStillAppears" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.062"/>
+  <testcase name="aFavoriteMovedOnThePhoneAppearsInTheDestinationGroup" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.098"/>
+  <testcase name="theGroupLevelOffersNoManagementAction" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.214"/>
+  <testcase name="showsLoadingBeforeFirstEmission" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.053"/>
+  <testcase name="rowsOfferNoReorderAffordanceAndSelectionStillNavigates" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.059"/>
+  <testcase name="groupScreenTitleIsTheGroupsName" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.059"/>
+  <testcase name="emptyStoreShowsNoFavoritesSaved" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.059"/>
+  <testcase name="unreadyStoreShowsTheLoadingRowOnly" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.068"/>
+  <testcase name="thePageRowOpensTheNextSlice" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.078"/>
+  <testcase name="aNameTheStoreNoLongerHoldsIsSkipped" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.06"/>
+  <testcase name="starredScreenTitleIsTheStarredFavoritesResource" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.048"/>
+  <testcase name="theStarredEntryOpensTheStarredLevel" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.049">
+    <failure message="java.lang.AssertionError: no row titled Starred favorites in [Cities, Work]" type="java.lang.AssertionError">java.lang.AssertionError: no row titled Starred favorites in [Cities, Work]
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertNotNull(Assert.java:713)
+	at com.naviveylin.auto.FavoritesScreenTest.tapRow(FavoritesScreenTest.kt:168)
+	at com.naviveylin.auto.FavoritesScreenTest.access$tapRow(FavoritesScreenTest.kt:63)
+	at com.naviveylin.auto.FavoritesScreenTest$theStarredEntryOpensTheStarredLevel$1.invokeSuspend(FavoritesScreenTest.kt:661)
+	at com.naviveylin.auto.FavoritesScreenTest$theStarredEntryOpensTheStarredLevel$1.invoke(FavoritesScreenTest.kt)
+	at com.naviveylin.auto.FavoritesScreenTest$theStarredEntryOpensTheStarredLevel$1.invoke(FavoritesScreenTest.kt)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$1.invokeSuspend(TestBuilders.kt:318)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+	at kotlinx.coroutines.test.TestDispatcher.processEvent$kotlinx_coroutines_test(TestDispatcher.kt:24)
+	at kotlinx.coroutines.test.TestCoroutineScheduler.tryRunNextTaskUnless$kotlinx_coroutines_test(TestCoroutineScheduler.kt:99)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt$runTest$2$1$workRunner$1.invokeSuspend(TestBuilders.kt:327)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:263)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:95)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking(Builders.kt:69)
+	at kotlinx.coroutines.BuildersKt.runBlocking(Unknown Source)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlocking$default(Builders.kt:47)
+	at kotlinx.coroutines.BuildersKt.runBlocking$default(Unknown Source)
+	at kotlinx.coroutines.test.TestBuildersJvmKt.createTestResult(TestBuildersJvm.kt:10)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:310)
+	at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(Unknown Source)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0(TestBuilders.kt:168)
+	at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0(Unknown Source)
+	at kotlinx.coroutines.test.TestBuildersKt__TestBuildersKt.runTest-8Mi8wO0$default(TestBuilders.kt:160)
+	at kotlinx.coroutines.test.TestBuildersKt.runTest-8Mi8wO0$default(Unknown Source)
+	at com.naviveylin.auto.FavoritesScreenTest.theStarredEntryOpensTheStarredLevel(FavoritesScreenTest.kt:648)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:59)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:56)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:26)
+	at org.junit.rules.TestWatcher$1.evaluate(TestWatcher.java:61)
+	at org.junit.runners.ParentRunner$3.evaluate(ParentRunner.java:306)
+	at org.robolectric.RobolectricTestRunner$HelperTestRunner$1.evaluate(RobolectricTestRunner.java:502)
+	at org.robolectric.internal.SandboxTestRunner$2.lambda$evaluate$2(SandboxTestRunner.java:285)
+	at org.robolectric.internal.bytecode.Sandbox.lambda$runOnMainThread$0(Sandbox.java:104)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+</failure>
+  </testcase>
+  <testcase name="noStarredEntryWhileNothingIsStarred" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.046"/>
+  <testcase name="aGroupRowOpensTheGroupsFavorites" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.059"/>
+  <testcase name="anUnanswerableHostFallsBackToTheLibraryDefault" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.079"/>
+  <testcase name="readinessCompletesWhileOpenUpdatesInPlace" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.049"/>
+  <testcase name="anEmptyGroupIsNotListedOnTheCar" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.049"/>
+  <testcase name="anUnavailableStoreRendersTheUnavailableRow" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.057"/>
+  <testcase name="eachScreenReadsTheCapacityForItself" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.05"/>
+  <testcase name="starredOrderBeyondTheCapacityPagesThroughTheRest" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.086"/>
+  <testcase name="starredModeOffersNoReorderAffordanceAndSelectionStillNavigates" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.055"/>
+  <testcase name="readyEmptyStoreShowsTheEmptyState" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.047"/>
+  <testcase name="scopeCancelledOnDestroy" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.061"/>
+  <testcase name="theTemplateBuildPerformsNoHostQuery" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.048"/>
+  <testcase name="lateEmissionUpdatesListWithoutReentering" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.049"/>
+  <testcase name="aStoppedScreenAppliesNothingAndTheStateArrivesOnStart" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.05"/>
+  <testcase name="screenTitleIsTheFavoritesResource" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.065"/>
+  <testcase name="aStarredReorderUpdatesTheListInPlace" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.045"/>
+  <testcase name="theProductionDefaultResolvesTheFavoritesProviderOnABackgroundThread" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.062"/>
+  <testcase name="aLargerHostCapacityShowsMoreRows" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.054"/>
+  <testcase name="groupRowsFollowTheStoredGroupOrder" classname="com.naviveylin.auto.FavoritesScreenTest" time="0.041"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[WARNING: A Java agent has been loaded dynamically (/home/tim/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy-agent/1.14.6/46e2545d7a97b6ccb195621650c5957279eb4812/byte-buddy-agent-1.14.6.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+]]></system-err>
+</testsuite>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.naviveylin.auto.MapTemplateFactoryTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-11-28T00:38:38.711Z" hostname="dingens" time="0.634">
+  <properties/>
+  <testcase name="templateCarriesSearchSettingsZoom" classname="com.naviveylin.auto.MapTemplateFactoryTest" time="0.229"/>
+  <testcase name="theNoFrameTemplateSpendsItsContentSlotOnTheNoticeAlone" classname="com.naviveylin.auto.MapTemplateFactoryTest" time="0.038"/>
+  <testcase name="menuHasHeaderWithAppIconAndTitle" classname="com.naviveylin.auto.MapTemplateFactoryTest" time="0.036"/>
+  <testcase name="theMenuCarriesSixRowsWithNoStarredEntry" classname="com.naviveylin.auto.MapTemplateFactoryTest" time="0.046"/>
+  <testcase name="theDegradedNoticeIsADisabledFirstRow" classname="com.naviveylin.auto.MapTemplateFactoryTest" time="0.038"/>
+  <testcase name="freeDrivingRowInvokesCallback" classname="com.naviveylin.auto.MapTemplateFactoryTest" time="0.036"/>
+  <testcase name="fullScreenTemplateHasNoContentSlot" classname="com.naviveylin.auto.MapTemplateFactoryTest" time="0.036"/>
+  <testcase name="noMapActionStrip" classname="com.naviveylin.auto.MapTemplateFactoryTest" time="0.031"/>
+  <testcase name="aHealthyMapCarriesNoNotice" classname="com.naviveylin.auto.MapTemplateFactoryTest" time="0.101"/>
+  <testcase name="templateHasController" classname="com.naviveylin.auto.MapTemplateFactoryTest" time="0.041"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

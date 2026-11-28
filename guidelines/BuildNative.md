@@ -122,6 +122,10 @@ The recipes are `guidelines/BuildNative.recipes.md` §10i.
   `adb logcat -d -s NaviVeylin:* | grep 'route description rows='`. The numbers, not a summary of them, are
   the evidence; the neighbouring `route analysis:` line reports the row sum against the route's total and
   `maxErrM`.
+- **Rule: a destination that no surface words is read from `tools/route-steps.sh`.** The census counts, so it
+  cannot tell a step with no record from a record the description placed on another node. The host demo
+  `Demos/src/RouteSteps.cpp` prints a route's description nodes beside the published steps and names, per
+  motorway enter/change, the node carrying the record; recipe `guidelines/BuildNative.recipes.md` §10k.
 
 ## 12. Native build and vcpkg
 

@@ -482,3 +482,106 @@ rm -rf vcpkg/buildtrees/<package>
   app, and the host `RendererService` disconnects ~40 s after launch. Plan car verification for an
   interactive window or a real head unit, and state the blocker instead of burning a session.
 
+
+## §10k The destination record behind a motorway manoeuvre — the host route dump
+
+The census (§10k) counts `motorway_dest` / `dest_empty`, so it answers "does a step word a destination" and
+nothing about *why* not. Two dumps answer the *why*, in this order, because the first one is the production
+path and the second one is a re-implementation:
+
+1. **`tools/route-hints.sh` — the Kotlin dump, run first.** `app/src/androidTest/.../route/RouteHintDumpDeviceTest.kt`
+   calculates the routes through `OSMScoutClient.calculateRouteWithProfile` over the app's own installed maps and
+   logs, per step, the model's `destination` beside every surface's wording of it (`ManoeuvreLabels.short` and
+   `leadsOnto`, the phone overlay's second line, the car hint's text) — all from the production functions and
+   real resources. It cannot disagree with the app because it re-implements nothing, and it answers the fork: a
+   step whose `destination=-` is a defect below the bridge, a step with a record beside an empty `carhint` is a
+   defect above it. Run it before suspecting the native model.
+2. **`tools/route-steps.sh` — the node dump, when (1) says the step carries no record.** It is a host demo that
+   copies the bridge's postprocessor chain, so it proves the *node placement*, not the app's behaviour: which
+   description node carries the `DestinationDescription` and which node the manoeuvre was placed on. Nothing
+   above `RouteStep` can see that, and it is what the fix needs.
+
+**The expected instructions are recorded once and replayed against navigation.** `RouteGuidanceFixtureDeviceTest`
+(`app/src/androidTest/.../route/`) records, from a coordinate pair, the instruction list the route is supposed
+to produce — `tools/route-hints.sh --record --routes roads.txt` pulls each fixture into
+`app/src/androidTest/assets/route-fixtures/`, where it is committed as the test setup. `--replay <label>`
+calculates the same route, drives the real `NavigationEngine` along its polyline through
+`processLocation` — the production entry point — captures every manoeuvre it announces and diffs the fixture
+against it: `matched= destination_missing= wording_differs= unannounced= unexpected=`.
+
+A fixture line's identity is **`<kind> <km from the route start>`** and nothing else. Node ids, file offsets
+and database ids are deliberately absent: an import renumbers all three, and a fixture that stored them would go
+stale on the next map update. The pair is the one `StepIndexSelection.nextStepIndex` matches a live step to the
+published list with, so the fixture identifies a manoeuvre the same way the app does (50 m window).
+
+**A recorded fixture states today's behaviour, a missing destination included** — so recording is the skeleton and
+the *expectation* is the part a person states once: after `--record`, read the true record off the map data with
+`tools/route-steps.sh` (`DESTINATION 'Essen;Bochum;…'`; the first block is the one a surface words) and set each
+motorway line's `destination=` and `leadsOnto=` to it by hand. A fixture left as recorded replays the defect as
+"expected" and can never fail.
+
+Reading the replay: `destination_missing>0` — the announced step carries no record, so the defect is below the
+bridge; step (2) then says which node holds it. `destination_missing=0` beside a `carhint` that does not name
+the destination — the defect is above the bridge, in a surface's wording or priority. `unannounced>0` — the
+engine never published that manoeuvre at all, which is a third defect and not a wording one.
+
+The record is placed by the description: `RoutePostprocessor::DestinationPostprocessor`
+attaches it to the last node with intersecting objects before the way change
+(`libosmscout/src/osmscout/routing/RoutePostprocessor.cpp:544-568`), and
+`InstructionPostprocessor::CarryDestination` (`:754`) copies it forward to the node the manoeuvre is placed on.
+A manoeuvre placed through a motorway link therefore reads the record of the pre-link node, not the one the
+link leads onto — the shape the screens report as "no destination".
+
+`Demos/src/RouteSteps.cpp` prints both layers, so the two causes are told apart without a device:
+
+```bash
+tools/route-steps.sh --build          # one host meson build: no render backend, no Qt, no tests
+tools/route-steps.sh --print-binary
+```
+
+Map data: pass `--map-dir DIR` once per database (a directory holding `types.dat`), or pull what the app
+itself routes on off a running emulator — the debug build is debuggable, so `run-as` reads its storage:
+
+```bash
+adb shell run-as com.framstag.naviveylin ls files/maps
+adb exec-out run-as com.framstag.naviveylin tar cf - files/maps | tar xf - -C /tmp/naviveylin-maps
+```
+
+Routes come from a text file, one route per line, `#` starting a comment:
+
+```bash
+cat > /tmp/roads.txt <<'ROUTES'
+# label        startLat startLon targetLat targetLon
+dortmund-essen 51.5177  7.4592    51.4510   7.0130
+ROUTES
+NAVIVEYLIN_MAPS=/tmp/naviveylin-maps/maps/regions/germany \
+  tools/route-steps.sh --routes /tmp/roads.txt
+```
+
+What the output says, in order:
+
+- **`--- route description nodes ---`** — one line per node that carries a manoeuvre, a destination or a
+  start/target label (`--all-nodes` prints every node): its distance, the **`objects=`** count the destination
+  postprocessor keys on, the path object, and every description the node holds, the destination in capitals as
+  `DESTINATION 'Essen;Bochum;Dortmund-Kley'`.
+- **`--- published steps ---`** — the model the app reads (`RouteStepCollector`, the same collector the live
+  guidance step is built from): kind, `motorway` from→to, the `destination` the step carries, the name.
+  `--all-steps` keeps the informative ones.
+- **`--- verdict ---`** — per motorway enter/change: `DESTINATION '...'` when the manoeuvre's own node carries
+  the record, else `NO RECORD` with the next node that does, and how far ahead it is. This line is the
+  difference between "the map data carries no destination here" and "the record is on the node after the
+  manoeuvre".
+
+Run it on the committed test region for a smoke check (no motorway there, so the verdict ends in
+`(no motorway enter or change on this route)`):
+
+```bash
+cat > /tmp/smoke.txt <<'ROUTES'
+smoke-a 50.4200 14.5400 50.4300 14.6000
+ROUTES
+tools/route-steps.sh --map-dir app/src/main/cpp/libosmscout/Tests/data/testregion --routes /tmp/smoke.txt
+```
+
+The tool is a diagnostic, not a gate: it prints and exits non-zero only when no route could be calculated. The
+native-side fix belongs in the submodule's `RoutePostprocessor` (the one-place rule, `guidelines/DesignNative.md`
+§5b), and the step it must produce is what this dump's second table shows.

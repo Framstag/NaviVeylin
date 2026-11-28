@@ -28,7 +28,8 @@ import org.junit.runner.RunWith
  * `NextNextHintDeviceTest` proves that real map data yields an announced entry whose hint is the leave;
  * this case renders *that* record through the real overlay and measures the row: the hint arrow is the
  * 36 dp node, its ink is present (the glyph is drawn as the `ManeuverSymbols` bitmap, which Robolectric's
- * canvas discards and no JVM case can rasterise), and the row's wording names the exit the route takes./
+ * canvas discards and no JVM case can rasterise), and the row's wording names the exit the route takes.
+ */
 @RunWith(AndroidJUnit4::class)
 class NextTurnHintRowDeviceTest {
 

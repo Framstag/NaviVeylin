@@ -232,6 +232,39 @@ keep_leftovers() { # keep_leftovers <item> → sets $leftover_patch (+ the file 
   leftover_patch="$patch"
 }
 
+# The difference a child left in the project's own tree, kept as a patch beside the item (issue #1092). The reading
+# of that tree was one transcript line and nothing else, so the caller's own tree had no record of what a round left in
+# it, and each of the four measured instances cost the same hand-work — read the diff, decide whether it is the item's
+# real work, re-home it on a branch, clean the tree (#1080's `tools/loop/evidence-check.sh` +143, #1034's five files
+# +126/−3, a `tools/__pycache__` and a probe dir). `diff HEAD` plus each untracked path, which is the shape
+# `keep_leftovers` writes for the worktree; the pre-flight refuses a dirty project tree (`run.sh:645`), so a patch taken
+# at a child's end applies to that tree, and `.pi/*` is ignored (`.gitignore:27`), so the record cannot dirty the tree
+# it records. It restores nothing and decides nothing: it is a file a person can act on in minutes.
+outside_write_patch_of() { # <item_dir> <phase> <root> → the patch it wrote, or nothing when it could not write one
+  local dir patch path size
+  case "$1" in /*) ;; *) return 0 ;; esac
+  [ -d "$1" ] || return 0
+  patch="$1/outside-write/$2.patch"
+  dir=$(dirname "$patch")
+  mkdir -p "$dir" 2>/dev/null || return 0
+  {
+    printf '# the difference a %s child left in %s\n' "$2" "$3"
+    # `diff HEAD` and not `diff`: a child of this run commits nothing, but the landing step of an earlier item may have
+    # staged work in this tree, and a staged half is work the reading counts (`keep_leftovers`' own reason, #308).
+    git -C "$3" diff HEAD --no-color 2>/dev/null || true
+    while IFS= read -r path; do
+      [ -n "$path" ] || continue
+      size=$(wc -c < "$3/$path" 2>/dev/null || printf 0)
+      if [ "$size" -gt 262144 ]; then
+        printf '# %s: %s bytes, not copied\n' "$path" "$size"
+      else
+        diff -u --label "/dev/null" --label "b/$path" /dev/null "$3/$path" 2>/dev/null || true
+      fi
+    done < <(git -C "$3" ls-files --others --exclude-standard 2>/dev/null)
+  } > "$patch" 2>/dev/null || { rm -f "$patch"; return 0; }
+  printf '%s\n' "$patch"
+}
+
 # The gate on the work a cut keeps (issue #885). An item the run's own bound ends keeps what its child left — the patch
 # `keep_leftovers` writes and the tree exactly as it stands — and until this, the caller was owed a resume action and
 # nothing else: the run of 2026-11-13T05:47:11Z cut #862 at 200 297 tokens and #875 at 205 503 (38.0 Mtok), recorded no

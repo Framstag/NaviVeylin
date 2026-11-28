@@ -276,7 +276,7 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
   # resolved at the directory the process starts in, and every path the child is handed — the work package,
   # its evidence directory, the change root its prompt names — lies inside the project. The tree it is told
   # to change is still the worktree, by the path in its prompt.
-  local before after rc phase child_cmd role role_key role_cmd turns_max turns_base stop hb started interval poll cap child timed_out=0 sweep status_file ended_by deadline_epoch now last_second hb_base next elapsed turns ctx_lines=0 ctx_max=0 ctx_warned=0 ctx_has_work=0 ctx_read ctx_new ctx_prev ctx_anchor ctx_bound ctx_bound_key checks_max checks_seen=0 checks_done=0 chk_new chk_read chk_done
+  local before after rc phase child_cmd role role_key role_cmd turns_max turns_base stop hb started interval poll cap child timed_out=0 sweep status_file ended_by deadline_epoch now last_second hb_base next elapsed turns ctx_lines=0 ctx_max=0 ctx_warned=0 ctx_has_work=0 ctx_read ctx_new ctx_prev ctx_anchor ctx_bound ctx_bound_key checks_max checks_seen=0 checks_done=0 chk_new chk_read chk_done outside_write_patch
   # The patch the child this call ends left its work in, and nothing from the child before it: `keep_leftovers`
   # sets it, and the item's record must name the patch of the child that just ended (issue #674).
   leftover_patch=""
@@ -676,9 +676,20 @@ run_child() { # run_child <prompt-file> <report-file> — every child goes throu
     cat "$2.outside-write" >> "$2"
   fi
   if project_state_differs "$before" "$after"; then
-    outside_write_line "$before" "$after" >> "$2"
+    # The difference the reading found is kept as a file a person can act on, beside the line that records it (issue
+    # #1092): the line names the paths and the patch carries them, so the caller's own tree has a record of what a round
+    # left in it without a second reading of a tree nobody vouched for. It is taken here, at the child's end — the
+    # pre-flight refuses a dirty project tree, so what it holds applies to that tree — and the item's own directory
+    # already holds everything else the phase wrote. It is named after the phase's report, which is the one file the
+    # run names a phase by: the prompt a role is handed is shared by every round of it, the report is not.
+    outside_write_patch=$(outside_write_patch_of "$item_dir" "$(basename "$2" .md)" "$LOOP_ROOT")
+    outside_write_line "$before" "$after" "$outside_write_patch" >> "$2"
     [ -n "$outside_write_note" ] ||
       outside_write_note="the project tree changed while this process ran: $(outside_write_clause_of "$before" "$after")"
+    # The note is what the run records about this phase, so the file is named there too — a reader who looks the
+    # difference up finds the patch and not only the paths it names.
+    [ -z "$outside_write_patch" ] ||
+      outside_write_note="$outside_write_note; the difference is kept at $outside_write_patch"
   fi
   return "$rc"
 }

@@ -10874,7 +10874,7 @@ case_run_aStopWhoseChildWroteNothingGetsNoClause() {
 
 case_run_childWriteOutsideTheWorktreeIsNoted() {
   # files: tools/loop/tests/fixtures/scenarios/ tools/loop/child.sh tools/loop/evidence.sh tools/loop/leftovers.sh tools/loop/run.sh tools/pi-child-events.sh tools/tooling.json
-  local d p out note
+  local d p out note patch
   d=$(scratch); p=$(new_project)
   export GH_STUB_DIR; GH_STUB_DIR=$(scenario one)
   # The measured shape: another process wrote the project's own tree while a child ran, and took it back again
@@ -10908,6 +10908,17 @@ case_run_childWriteOutsideTheWorktreeIsNoted() {
   assert_contains "$out" "loop: note ·" "the difference is on the transcript a person tails, not only in the state"
   assert_contains "$(cat "$(find "$p/.pi/issue-loop/items" -name 'worker-report.md' | head -1)")" "LOOP-OUTSIDE-WRITE:" \
     "the child's own transcript carries it as a machine-readable line, not only the run's note"
+  # …and the difference itself is kept as a file a person can act on (issue #1092): the reading was a note and nothing
+  # else, so the caller's own tree had no record of what a round left in it, and each of the four measured instances
+  # cost the same hand-work — read the diff, decide, re-home it on a branch, clean the tree. The patch is taken at the
+  # child's end, so it is taken against the clean tree the pre-flight keeps and applies to it (`.pi/*` is ignored, so
+  # the patch cannot dirty the tree it records).
+  patch=$(find "$p/.pi/issue-loop/items" -path '*/outside-write/worker-report.patch' | head -1)
+  assert_eq "1" "$(printf '%s\n' "$patch" | grep -c . || true)" \
+    "the difference a child left in the caller's tree is kept as a patch beside the item"
+  assert_contains "$(cat "$patch")" "+++ b/demo-owned.txt" "and the patch carries the path the child wrote"
+  ( cd "$p" && git apply --check "$patch" ) || fail "the kept patch does not apply to the clean tree it was taken against"
+  assert_contains "$note" "outside-write/worker-report.patch" "and the note a reader looks up names the file it is kept in"
   assert_eq "1" "$(grep -c 'issue close' "$GH_STUB_RECORD" || true)" "and the item is closed"
 }
 

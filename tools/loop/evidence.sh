@@ -391,11 +391,14 @@ outside_write_pids() { # <root> <worktree> [pid to skip …] → one `<pid> <com
 # The one line a child's transcript gains when the project's own tree moved while it ran: what changed, by the
 # status line it changed to, and who else could have changed it (issue #285: #274's round-2 worker was blocked by a
 # line that named no path, and the work was lost to a decision nobody could answer).
-outside_write_line() { # outside_write_line <before> <after> → one `LOOP-OUTSIDE-WRITE: …` line
+outside_write_line() { # outside_write_line <before> <after> [the patch the difference was kept in] → one `LOOP-OUTSIDE-WRITE: …` line
   local holders
   holders=$( cd / && outside_write_pids "$LOOP_ROOT" "$LOOP_WORKTREE" | cut -c1-120 | outside_write_clause 5 )
   printf 'LOOP-OUTSIDE-WRITE: the project tree changed while this process ran: %s' \
     "$(outside_write_clause_of "$1" "$2")"
+  # …and where the difference itself is kept, when the caller wrote it down (issue #1092): a note naming the paths is
+  # not a diff, and the four measured instances each cost a person re-deriving one by hand from the same tree.
+  [ -z "${3:-}" ] || printf '; the difference is kept at %s' "$3"
   [ -z "$holders" ] || printf '; process(es) whose working directory is inside the project: %s' "$holders"
   printf '\n'
 }

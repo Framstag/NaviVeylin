@@ -7047,3 +7047,24 @@ no change, and a change carrying no route line, SHALL be outside the counted set
   resolves
 - **THEN** both the check's arm and the report's case fail, naming the two readers of the one function
 - **Case**: `check#aRouteSectionResolvesAgainstItsDocument`
+
+### Requirement: A difference left in the caller's tree is kept as a patch
+
+When the reading taken around a child differs from the reading taken before it, the run SHALL write that difference to
+`<item_dir>/outside-write/<phase>.patch`, where `<phase>` is the report file the run names that phase by, and SHALL name
+that file in the note it records for the phase, so the caller's own tree has a record of what a round left in it without
+a second reading of a tree nobody vouched for. The patch SHALL carry the tracked difference against `HEAD` and every
+path `git ls-files --others --exclude-standard` names, which is the shape the kept worktree's own patch is written in,
+and a path above the recorded size bound SHALL be named in the patch rather than copied into it. The file SHALL be
+written under the item's directory, which the run ignores in the tree it records, so writing it SHALL NOT change that
+tree's status. The patch restores nothing, grades nothing and decides nothing: a difference the run cannot attribute
+still does not decide the item, and the patch is a record beside the phase and never a replacement for it.
+
+#### Scenario: A child's difference in the caller's tree is written down
+
+- **WHEN** the project's own tree differs from its reading before a child when that child ends, and the run records the
+  line naming the paths that changed
+- **THEN** the difference is also written to `<item_dir>/outside-write/<phase>.patch`, the patch carries the tracked
+  difference and each untracked path the tree's status names, `git apply --check` accepts it on the clean tree it was
+  taken against, and the note the run records for the phase names that file
+- **Case**: `run#childWriteOutsideTheWorktreeIsNoted`

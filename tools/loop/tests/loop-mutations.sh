@@ -1512,11 +1512,11 @@ MUTATIONS=(
   # leg spent its own `timeout 900` before the selection finished and the step was red on every delta. The record
   # points the leg back at that file, so the case that holds the pick to the declaration reds for the right reason
   # rather than for a line that moved.
-  '934.1@-@tools/loop/tests/loop-mutations-selftest.sh@mutation#theFileSetLegScopesByTheCheapestFile@the file the file-set leg scopes by, pointed back at the file that owns 39 of the declared records, so the leg spends its own bound proving a selection two records prove as well (issue #934)@s|^scoped_file="tools/loop/phase.sh"$|scoped_file="tools/loop/state.sh"|'
+  '934.1@-@tools/loop/tests/loop-mutations-selftest.sh@mutation#theFileSetLegScopesByTheCheapestFile@the file the file-set leg scopes by, pointed back at the file that owns 39 of the declared records, so the leg spends its own bound proving a selection two records prove as well (issue #934)@s|^scoped_file="tools/loop/evidence-check.sh"$|scoped_file="tools/loop/state.sh"|'
   # 934.2 — the other arm: a pick the declaration gives one record to is a set of one, and the leg would report a file
   # set it never proved. The case has to name that rather than read it as a set, so the file it scopes by is pointed at
   # a file one record names — a green leg over a selection of one is the silent half of the same lie.
-  '934.2@-@tools/loop/tests/loop-mutations-selftest.sh@mutation#theFileSetLegScopesByTheCheapestFile@the file the file-set leg scopes by, pointed at a file the declaration gives one record to, so the leg would run a set of one and the case names that instead of reading it as a set (issue #934)@s|^scoped_file="tools/loop/phase.sh"$|scoped_file="tools/loop/prompts/pre-gate-review.md"|'
+  '934.2@-@tools/loop/tests/loop-mutations-selftest.sh@mutation#theFileSetLegScopesByTheCheapestFile@the file the file-set leg scopes by, pointed at a file the declaration gives one record to, so the leg would run a set of one and the case names that instead of reading it as a set (issue #934)@s|^scoped_file="tools/loop/evidence-check.sh"$|scoped_file="tools/loop/prompts/pre-gate-review.md"|'
   # 885.1 — the gate a cut runs on the work it keeps (issue #885). The arm is the whole of the change: a cut that keeps
   # work ends with the gate's result beside it only because the run starts that gate on the tree the ended child left,
   # and a cut that skips it is the defect the item was filed from — a resume action on 38.0 Mtok of work nobody had run
@@ -1646,8 +1646,13 @@ MUTATIONS=(
   # against in prose no step resolved, so a section number a document does not have was filed, reviewed and archived as
   # a route. The two records are the two halves of the resolution: one makes a § that does not exist resolve, one makes
   # the missing route line a refusal instead of the warning the first run reads.
-  '974.1@-@tools/loop/evidence-check.sh@check#aRouteSectionResolvesAgainstItsDocument@the comparison that resolves a cited § against the `## ` headings the document carries, so any id resolves and the id a document does not carry is filed as a route (issue #974)@s|^      if grep -qxF "\$id" <<<"\$ids"; then$|      if true; then|'
+  '974.1@-@tools/loop/lib.sh@check#aRouteSectionResolvesAgainstItsDocument@the comparison that resolves a cited § against the `## ` headings the document carries, so any id resolves and the id a document does not carry is filed as a route (issue #974)@s|^  grep -qxF "\$id" <<<"\$ids"$|  true|'
   '974.2@-@tools/loop/evidence-check.sh@check#aRouteSectionResolvesAgainstItsDocument@the arm that reads a missing route as the warning the run after the rule landed needs, so the first run of a tree whose reports predate the line refuses every one of them (issue #974)@s|^      if \[ "\$route_mode" = "fail" \]; then$|      if true; then|'
+  # 1113.1 — the report's share of items whose route resolves (issue #1113). The resolution is `lib.sh`'s, so this
+  # record mutates the function the gate's C6 and the report both call: 974.1 falsifies the comparison inside it for
+  # the check's arm, and this one makes it answer true for every id, which is what the report must not read as a run
+  # that routed every item.
+  '1113.1@-@tools/loop/lib.sh@report#theRouteShareIsPrinted@the resolution the report counts, so every cited id resolves and a report no document carries is counted as routed (issue #1113)@s|^loop_route_resolves() {|loop_route_resolves() { return 0|'
   # 1027.1 — the report line that names a refused publish. Without it the refusal is a stderr event again and the
   # branch the remote does not carry is a fact only the events hold, which is the state the item was filed on.
   '1027.1@-@tools/loop/report.sh@worktree#aRejectedPushIsRecordedOnTheItem@the refused publish the report names, so the branch the remote does not carry is a fact no report line holds (issue #1027)@s|^printf .publish refused: %s.n. .*$|printf "publish refused: none"|'

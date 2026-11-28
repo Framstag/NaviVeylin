@@ -433,6 +433,9 @@ LOOP_SHELL_CASES=(
   'report#emptyRunSaysNone'
   'report#anItemOverTheTokenBoundIsFlagged'
   'report#theBoundRateIsNamed'
+  'report#theRouteShareIsPrinted'
+  'report#anItemWithNoRouteIsOutsideTheCount'
+  'report#theRouteShareNamesItsDenominator'
   'state#aCutRecordsTheFilesItsPatchCarries'
   'report#theArchivesClassesAreDerivedNotInvented'
   'report#anItemBelowTheCallsPerTurnFloorIsNamed'
@@ -1434,6 +1437,9 @@ loop_run_shell_case() {
     'state#aHoldMovesTheDeadlineWithIt') fn=case_state_aHoldMovesTheDeadlineWithIt ;;
     'run#aQuotaHoldPausesTheRunAndResumesIt') fn=case_run_aQuotaHoldPausesTheRunAndResumesIt ;;
     'report#theBoundRateIsNamed') fn=case_report_theBoundRateIsNamed ;;
+    'report#theRouteShareIsPrinted') fn=case_report_theRouteShareIsPrinted ;;
+    'report#anItemWithNoRouteIsOutsideTheCount') fn=case_report_anItemWithNoRouteIsOutsideTheCount ;;
+    'report#theRouteShareNamesItsDenominator') fn=case_report_theRouteShareNamesItsDenominator ;;
     'report#theArchivesClassesAreDerivedNotInvented') fn=case_report_theArchivesClassesAreDerivedNotInvented ;;
     'state#aCutRecordsTheFilesItsPatchCarries') fn=case_state_aCutRecordsTheFilesItsPatchCarries ;;
     'census#theCensusIsANumber') fn=case_census_theCensusIsANumber ;;
@@ -16385,6 +16391,84 @@ case_report_theBoundRateIsNamed() {
   line=$(printf '%s\n' "$out" | grep '^bound: [0-9]' || true)
   assert_contains "$line" "bound: 0 of 3 items (0.0 %)" "a run the bound ended nothing in prints the rate it measured"
   assert_contains "$line" "archive: -" "and an archive with no finished run prints -, not a rate over nothing"
+}
+
+# The share of a run's items whose guideline route resolves (issue #1113). #1080 landed the resolution as the gate's C6
+# and #1081 landed the line it reads, and neither printed a figure: C6's counts went into the round's own log, which no
+# record reads back, so a run that routed every item and a run that routed none printed the same report. The counted
+# set is the items whose record names a change carrying a route line — the population #974's 55 % baseline counts — so
+# an item that could never resolve one is outside the denominator rather than read as a miss.
+case_report_theRouteShareIsPrinted() {
+  # files: tools/loop/report.sh tools/loop/lib.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out line
+  p=$(new_project)
+  init_state "$p" 3 90
+  mkdir -p "$p/guidelines" "$p/openspec/changes/the-route-resolves" "$p/openspec/changes/the-route-does-not"
+  printf '# Backlog\n\n## §7e The run reports what it did\n\nthe text of 7e\n' > "$p/guidelines/Backlog.md"
+  printf -- '- LOOP-ROUTE: guidelines/Backlog.md §7e\n' > "$p/openspec/changes/the-route-resolves/proposal.md"
+  printf -- '- LOOP-ROUTE: guidelines/Backlog.md §99\n' > "$p/openspec/changes/the-route-does-not/proposal.md"
+  run_state "$p" done 21 --result done --verdict closed --change the-route-resolves >/dev/null ||
+    fail "the item that routes was refused"
+  run_state "$p" done 22 --result done --verdict closed --change the-route-does-not >/dev/null ||
+    fail "the item whose route does not resolve was refused"
+  # The third item names no change at all: it is in neither side of the figure, because nothing it recorded could have
+  # resolved a route.
+  run_state "$p" done 23 --result done --verdict closed >/dev/null || fail "the item naming no change was refused"
+  out=$(run_report "$p") || fail "the report failed"
+  line=$(printf '%s\n' "$out" | grep '^route: ' || true)
+  assert_contains "$line" "route: 1 of 2 item(s)" \
+    "the numerator is the item whose route resolves and the denominator the two items whose change carries a route"
+  assert_contains "$line" "(50.0 %)" "the share of those two is printed beside them"
+  assert_contains "$line" "archive: -" "and an archive with no finished run prints -, not a rate over nothing"
+}
+
+# The denominator's other half (issue #1113): a change that carries no `LOOP-ROUTE:` line is not a resolution missed, so
+# it is outside the count rather than in the numerator's shadow. Counting it as a miss would print a figure that falls
+# as the tree heals, which is the one direction the line exists to expose.
+case_report_anItemWithNoRouteIsOutsideTheCount() {
+  # files: tools/loop/report.sh tools/loop/lib.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p q out line
+  p=$(new_project)
+  init_state "$p" 1 90
+  mkdir -p "$p/guidelines" "$p/openspec/changes/no-route-here"
+  printf '# Backlog\n\n## §7e The run reports what it did\n' > "$p/guidelines/Backlog.md"
+  printf -- '- Related: nothing was routed here\n' > "$p/openspec/changes/no-route-here/proposal.md"
+  run_state "$p" done 31 --result done --verdict closed --change no-route-here >/dev/null ||
+    fail "the item naming a change with no route line was refused"
+  out=$(run_report "$p") || fail "the report failed"
+  line=$(printf '%s\n' "$out" | grep '^route: ' || true)
+  assert_contains "$line" "route: 0 of 0 item(s)" "a change carrying no route line is outside the denominator"
+  assert_contains "$line" "(-)" "and a share over nothing prints -, not the zero it would read as"
+
+  # A project that names no guideline directory owes no route: the line says why it counts nothing instead of printing
+  # a rate, the way C6's own note does.
+  q=$(new_project)
+  init_state "$q" 1 90
+  run_state "$q" done 32 --result done --verdict closed --change anything >/dev/null || fail "the item was refused"
+  out=$(run_report "$q") || fail "the report failed for a project with no guideline directory"
+  line=$(printf '%s\n' "$out" | grep '^route: ' || true)
+  assert_contains "$line" "no guideline directory at guidelines" "the absent directory is named beside the dash"
+  assert_not_contains "$line" "of 0 item(s)" "and nothing is counted over a directory the tree does not hold"
+}
+
+# A landed change is counted from the directory the landing moved it to (issue #1113): the record keeps the change's
+# name as the item was started — under the archive's own spelling once it lands — and a reader that looked only for a
+# live directory would lose every item that closed to the archive.
+case_report_theRouteShareNamesItsDenominator() {
+  # files: tools/loop/report.sh tools/loop/lib.sh tools/loop/state.sh tools/pi-child-events.sh tools/tooling.json
+  local p out line
+  p=$(new_project)
+  init_state "$p" 1 90
+  mkdir -p "$p/guidelines" "$p/openspec/changes/archive/2026-01-01-the-landed-change"
+  printf '# Backlog\n\n## §7a Running one item\n\nthe text of 7a\n' > "$p/guidelines/Backlog.md"
+  printf -- '- LOOP-ROUTE: guidelines/Backlog.md §7a\n' \
+    > "$p/openspec/changes/archive/2026-01-01-the-landed-change/proposal.md"
+  run_state "$p" done 41 --result done --verdict closed --change 2026-01-01-the-landed-change >/dev/null ||
+    fail "the item whose change is archived was refused"
+  out=$(run_report "$p") || fail "the report failed"
+  line=$(printf '%s\n' "$out" | grep '^route: ' || true)
+  assert_contains "$line" "route: 1 of 1 item(s)" "the change the landing archived is counted from its archived copy"
+  assert_contains "$line" "(100.0 %)" "and its route, which the document carries, resolves"
 }
 
 # The class an archived record ended by is derived on read, and what the derivation cannot decide is printed as its

@@ -756,6 +756,28 @@ does not resolve records nothing rather than `0 files`. It is a **measurement, n
 and no item's outcome reads it — and what a rate over the bound should then change is the item's question, not this
 line's (`run#childPastItsContextBoundIsCut` pins the stop, `report#theBoundRateIsNamed` the line).
 
+**The run's report says what share of its work reached its rule** (issue #1113, the third arm of #974). The gate
+resolves a report's `LOOP-ROUTE: <doc> §<id>` line (C6 in `evidence-check.sh`, added by #1080) and the report block
+carries one from the next run on (#1081) — and neither printed a figure: C6's counts went into the round's own log,
+which no record reads back, so a run that routed every item and a run that routed none printed the same report, and
+#974's "Measure after" had no number to move from its 55 % baseline. The line is `route:`, printed beside `bound:`
+because both answer how often the run misses a rule it enforces:
+`route: 2 of 3 item(s) whose report routes (66.7 %) · archive: 28 of 28 (100.0 %)`. Its population is the items whose
+record names a change carrying at least one route line — the items that wrote a report, which is the population #974
+counts — so an item naming no change, and a change carrying no route line, are outside the denominator rather than
+read as a miss: an item that could never be counted a hit inflates the denominator, and the figure would fall as the
+tree heals, which is the one direction it exists to expose. The change is the field the record already keeps
+(`state.sh done --change`), resolved live first and in the archive second, because a landed item's change is an
+archive entry by the time its run is read; the resolution itself is `lib.sh`'s (`loop_route_lines`, `loop_route_ids`,
+`loop_route_resolves`), the one C6 applies, so the two readers cannot disagree and one mutation reddens both
+(`1113.1` in `loop-mutations.sh`, beside `974.1`). Measured on this tree (2026-11-28): of the 238 archived run states'
+219 item records, 135 name a change, 97 of those directories are still held, **28 carry a route line and 28 of the 28
+resolve** — the archived figure the line prints; 28.9 % of the items whose change the tree still holds carry a route
+line at all, which is the number beside #974's 55 % that has to rise. What a rate over the route should then change is
+the item's question, not this line's; `report#theRouteShareIsPrinted` pins the line,
+`report#anItemWithNoRouteIsOutsideTheCount` the denominator and `report#theRouteShareNamesItsDenominator` the archived
+lookup.
+
 **The work a cut keeps is gated before the item ends** (issue #885). The run of 2026-11-13T05:47:11Z cut #862 at
 200 297 tokens and #875 at 205 503 — 38.0 Mtok with no verdict — kept both patches, recorded no gate result for either,
 and owed the caller two resume actions and nothing measured about the work that exists; the recorded precedent for a

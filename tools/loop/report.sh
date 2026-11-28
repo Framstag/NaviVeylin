@@ -36,6 +36,12 @@
 # dropped — the run's totals print the same whether one item was cut or nine, so the extent alone is not the answer.
 # A **warning, never a stop**, like every figure beside it.
 #
+# Since issue #1113 it prints the share of the run's items whose guideline route resolves, beside the archive's: the
+# `LOOP-ROUTE:` line a report carries is resolved by the gate (`evidence-check.sh`, C6) and its counts only ever reached
+# the round's log, so a run that routed every item and one that routed none printed the same shapes. The counted set is
+# the items whose record names a change carrying a route line, so an item that could never resolve one is outside the
+# denominator rather than read as a miss.
+#
 # `--state <file>` reports on a state `state.sh init` kept before it replaced it, so a finished run's
 # counters, verdicts and stop reason survive the next run starting (issue #207). Without it the report is
 # the run in place, exactly as before.
@@ -394,6 +400,99 @@ printf 'bound: %s of %s items (%s) · archive: %s' \
   "$cap_hits" "$cap_items" "$(bound_share "$cap_hits" "$cap_items")" "$archive_clause"
 [ -z "$cap_named" ] || printf ' · %s' "$cap_named"
 printf '\n'
+
+# The share of the run's items whose guideline route resolves (issue #1113). The resolution landed as the gate's C6
+# (`evidence-check.sh`, #1080) and the line it reads landed in the report block (`prompts/worker.md`, #1081), and
+# neither printed a figure: C6's counts went into the round's own log, which no record reads back, so a run that
+# routed every item and a run that routed none printed the same report — and #974's "Measure after", the share of
+# the items that wrote a report, had no number to move from its 55 % baseline.
+#
+# The counted set is the items whose record names a change carrying at least one route line. An item naming no change,
+# and a change carrying no route line, are outside the denominator rather than counted as a miss: an item that could
+# never be counted a hit inflates the denominator, so a figure that falls as the tree heals is the one direction this
+# line exists to stop — the rule `bound_share`'s own denominator already follows. The change is the field the record
+# already keeps (`done --change`), resolved live first and in the archive second, because a landed item's change is an
+# archive entry by the time its run is reported; no record field is added, so a state written before this line landed
+# answers.
+#
+# The resolution is `lib.sh`'s (`loop_route_lines`, `loop_route_ids`, `loop_route_resolves`), the one the gate applies,
+# so the two readers cannot disagree — which is what lets one mutation redden both.
+route_guide_dir=$(loop_conf_value LOOP_GUIDELINE_DIR)
+route_family=$(loop_change_family)
+route_prefix=$(loop_conf_value LOOP_CHANGE_ARCHIVE_PREFIX)
+
+# The directories a change name may sit in, read once: the change family's own directories and the archive's, keyed by
+# the name the change carries **after** its archive's prefix is stripped. `loop_change_path` is the one derivation that
+# strips it, so a name is canonically spelled in one place and no reader here repeats the project's pattern. Two
+# spellings map onto that key: the canonical name, and the archived directory's own name, because a record keeps the
+# spelling the change had when the item was started and an item that landed under an archived change keeps
+# `<date>-<name>`. Built once because the alternative is a pass over every archived directory per item, and the
+# archive of this project holds 788.
+declare -A route_dir_by_name=() route_dir_alias=() route_lines_by_dir=()
+route_dir_index() {
+  local dir rel name
+  # the archive first, the live family second, so a change worked again under a name it was archived under is read
+  # from the directory that carries the work
+  for dir in "$LOOP_ROOT/$route_family"/archive/*/ "$LOOP_ROOT/$route_family"/*/; do
+    [ -d "$dir" ] || continue
+    rel=${dir#"$LOOP_ROOT"/}; rel=${rel%/}
+    [ "$rel" = "$route_family/archive" ] && continue
+    # the trailing element is what makes an archived path one the derivation reads as a path *inside* a change
+    name=$(loop_change_path "$rel/x.md" "$route_family" "$route_prefix")
+    name=${name#"$route_family"/}; name=${name%/*}
+    route_dir_by_name["$name"]="$rel"
+    route_dir_alias["${rel##*/}"]="$name"
+  done
+}
+
+route_counts_of() { # <state file>… → "<items whose every route line resolves> <items whose change carries a route line>"
+  local f change dir lines line doc id ok hits=0 total=0 _issue
+  for f in "$@"; do
+    [ -f "$f" ] || continue
+    while IFS=$'\t' read -r _issue change; do
+      [ -n "$change" ] || continue
+      change=${route_dir_alias["$change"]:-$change}
+      dir=${route_dir_by_name["$change"]:-}
+      [ -n "$dir" ] || continue
+      if [ -z "${route_lines_by_dir["$dir"]+cached}" ]; then
+        route_lines_by_dir["$dir"]=$(loop_route_lines "$LOOP_ROOT/$dir")
+      fi
+      lines=${route_lines_by_dir["$dir"]}
+      [ -n "$lines" ] || continue
+      total=$((total+1)); ok=1
+      while IFS= read -r line; do
+        doc=$(sed -n 's/^.*LOOP-ROUTE:[[:space:]]*\([^[:space:]]*\).*$/\1/p' <<<"$line")
+        id=$(sed -n 's/^.*§\([0-9][0-9a-z]*\).*$/\1/p' <<<"$line")
+        case "$doc" in
+          "$route_guide_dir"/*) ;;
+          *) ok=0; continue ;;
+        esac
+        loop_route_resolves "$LOOP_ROOT" "$doc" "$id" || ok=0
+      done <<<"$lines"
+      [ "$ok" -eq 1 ] && hits=$((hits+1))
+    done < <(jq -r '.items[]? | [.issue, (.change // "")] | @tsv' "$f" 2>/dev/null)
+  done
+  printf '%s %s\n' "$hits" "$total"
+}
+
+archive_route="-"
+if [ -z "$route_guide_dir" ] || [ ! -d "$LOOP_ROOT/$route_guide_dir" ]; then
+  # A project that names no guideline directory owes no route, and printing `0.0 %` would read as a measurement
+  # nobody made: the line says why it counts nothing, as C6's own note does.
+  printf 'route: - · no guideline directory at %s — a route cannot resolve, so none is counted\n' \
+    "${route_guide_dir:-<unnamed>}"
+else
+  route_dir_index
+  read -r route_hits route_items <<<"$(route_counts_of "$state_file")"
+  if [ ${#archive_files[@]} -gt 0 ]; then
+    read -r archive_route_hits archive_route_items <<<"$(route_counts_of "${archive_files[@]}")"
+    if [ "${archive_route_items:-0}" -gt 0 ]; then
+      archive_route="$archive_route_hits of $archive_route_items ($(bound_share "$archive_route_hits" "$archive_route_items"))"
+    fi
+  fi
+  printf 'route: %s of %s item(s) whose report routes (%s) · archive: %s\n' \
+    "$route_hits" "$route_items" "$(bound_share "$route_hits" "$route_items")" "$archive_route"
+fi
 
 # What class ended each archived record is derived on read, and never taken from the absence of a field (issue #922).
 # The archive predates `done --stop-reason` — that vocabulary arrived with #865 — so 119 of its 140 blocked records

@@ -76,7 +76,8 @@ loop_base_ref	lib.sh	loop-clean.sh gate.sh labels.sh leftovers.sh run.sh state.s
 loop_bound_under_ceiling	lib.sh	gate.sh
 loop_bytes_of	lib.sh	worktree.sh loop-clean.sh
 loop_change_archive_dir	lib.sh	child.sh evidence.sh run.sh
-loop_change_family	lib.sh	evidence.sh
+loop_change_family	lib.sh	evidence.sh report.sh
+loop_change_path	lib.sh	report.sh
 loop_change_identity	lib.sh	gate.sh evidence.sh
 loop_change_restore	lib.sh	run.sh
 LOOP_CHILD_TIMEOUT	lib.sh	run.sh child.sh
@@ -113,6 +114,9 @@ loop_remote_branches	lib.sh	worktree.sh
 loop_render	lib.sh	child.sh
 loop_resolve	lib.sh	prescreen.sh gate.sh labels.sh loop-clean.sh measure.sh phase.sh report.sh run.sh state.sh worktree.sh
 loop_role	lib.sh	prescreen.sh labels.sh report.sh run.sh state.sh
+loop_route_ids	lib.sh	evidence-check.sh
+loop_route_lines	lib.sh	evidence-check.sh report.sh
+loop_route_resolves	lib.sh	evidence-check.sh report.sh
 loop_roles_load	lib.sh	report.sh labels.sh prescreen.sh run.sh state.sh
 LOOP_ROOT	lib.sh	prescreen.sh child.sh evidence.sh gate.sh leftovers.sh loop-clean.sh phase.sh report.sh run.sh state.sh worktree.sh
 loop_same_dir	lib.sh	loop-clean.sh

@@ -698,6 +698,46 @@ loop_change_archive_dir() { # <tree> <change name> → the archived directory's 
   done
 }
 
+# ── the guideline route a change names ─────────────────────────────────────────────────────────────────────────
+# A report says which rule it was worked against in one line, `LOOP-ROUTE: <doc> §<id>`, and two readers ask it the
+# same question: the gate refuses a cited id its document does not carry (`evidence-check.sh`'s C6, issue #1080) and
+# the run's report counts the share of its items whose route resolves (issue #1113). The rule is defined once here,
+# so one mutation of it reddens both readers instead of one of two copies.
+#
+# A **route line** is anchored: nothing but list/quote markers and space may precede it. A paragraph that quotes the
+# form — "the report block carries `LOOP-ROUTE: …`" — is prose about the line, not the line, and reading it as one
+# would refuse every change that documents its own convention (issue #974). The `-n` is the check's: its refusal
+# names the line, and the file and line number the match came from are what a reader follows to repair it.
+loop_route_lines() { # <dir> → the anchored `LOOP-ROUTE:` lines of the markdown under <dir>
+  local dir="${1:-}" files
+  [ -n "$dir" ] && [ -d "$dir" ] || return 0
+  files=$(find "$dir" -name '*.md' -type f 2>/dev/null | sort)
+  [ -n "$files" ] || return 0
+  # shellcheck disable=SC2086
+  grep -nE '^[[:space:]>*-]*LOOP-ROUTE:' $files 2>/dev/null || true
+}
+
+# A document's own sections are the ids its `## ` headings carry, in the two shapes this project writes:
+# `## 2a. Agent iteration protocol` and `## §7a Running one item` — the id is the leading number, and the shape's own
+# separator follows it: a `.` and then whitespace, or the heading's first space after the `§`. A heading that carries
+# neither separator (`## 7a Running one item`) and a dotted sub-number (`## 3.6 …`) carry no id (issue #974).
+loop_route_ids() { # <doc> → the ids the document's own `## ` headings carry, one per line
+  local doc="${1:-}"
+  [ -n "$doc" ] && [ -f "$doc" ] || return 0
+  sed -n 's/^## §\([0-9][0-9a-z]*\)[[:space:]].*$/\1/p; s/^## \([0-9][0-9a-z]*\)\.[[:space:]].*$/\1/p' "$doc"
+}
+
+# Whether a cited id is one its document carries, resolved under the project's root. Which documents may be cited at
+# all — the guideline directory they must sit under — is the caller's, because it is the project's configuration and
+# never a literal here (`tools/check-portability.sh`, issue #255).
+loop_route_resolves() { # <root> <doc> <id> → 0 the document exists under <root> and carries <id>
+  local root="${1:-}" doc="${2:-}" id="${3:-}" ids
+  [ -n "$root" ] && [ -n "$doc" ] && [ -n "$id" ] || return 1
+  [ -f "$root/$doc" ] || return 1
+  ids=$(loop_route_ids "$root/$doc")
+  grep -qxF "$id" <<<"$ids"
+}
+
 # Usage: loop_tree_identity <tree> <base> [<pathspec to leave out>] → `head=<sha> diff=<digest>`, or nothing when git
 # cannot answer.
 loop_tree_identity() {

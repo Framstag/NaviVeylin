@@ -156,9 +156,10 @@ check "the mutation set lists what it declares" "$declared" "$(printf '%s\n' "$o
 # among the files that own at least two — a set of one is no set — because a file that owns most of the declaration
 # spends this leg's bound before the selection finishes: `tools/loop/state.sh`'s 39 of the 401 declared records ran the
 # leg past `timeout 900` and reddened the step on every delta, for a change that touched nothing it reads (issue #934).
-# `tools/loop/phase.sh` owns 2, and `mutation#theFileSetLegScopesByTheCheapestFile` holds this pick to the declaration,
-# so a record that moves off it names the file to point the leg at instead of leaving the constant to rot.
-scoped_file="tools/loop/phase.sh"
+# `tools/loop/evidence-check.sh` and `tools/loop/phase.sh` own 2 each, and the tie goes to the path that sorts first;
+# `mutation#theFileSetLegScopesByTheCheapestFile` holds this pick to the declaration, so a record that moves off it names
+# the file to point the leg at instead of leaving the constant to rot.
+scoped_file="tools/loop/evidence-check.sh"
 owned=$(sed -n '/^MUTATIONS=(/,/^)/p' "$root/tools/loop/tests/loop-mutations.sh" |
   awk -F'@' -v f="$scoped_file" '$3 == f { print $1 }' | sed "s/^[[:space:]]*'//; s/'$//" | sort)
 owned_count=$(printf '%s\n' "$owned" | grep -c .)

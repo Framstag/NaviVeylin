@@ -29,6 +29,12 @@
 #   --scan / --xml-dir override the two values the project's configuration names, for a tree that is not this one.
 set -euo pipefail
 
+# The route's rule is the engine's, not a second copy of it here: `loop_route_lines`, `loop_route_ids` and
+# `loop_route_resolves` are `lib.sh`'s, because the run's report counts the same resolution (issue #1113).
+here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=tools/loop/lib.sh
+source "$here/lib.sh"
+
 usage() { sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'; }
 
 # The recorded `§ → issue` table: the migration wrote it into its change directory, and archiving moved that
@@ -185,16 +191,21 @@ run_checks() { # <change> <root> <table> <scan-paths> <xml-dir> <guideline-dir> 
   # ---- C6: the guideline route ------------------------------------------------------------
   # A report says which rule it was worked against in one line, `LOOP-ROUTE: <doc> §<id>`, and nothing resolved
   # that line until this check existed: a section number a document does not have was filed, reviewed and archived
-  # as a route (issue #974). Resolution compares the cited id with the id the document's own `## ` headings carry
-  # (`## 2a. Thing` is `§2a`), reading those headings and never the document. The directory is the project's
+  # as a route (issue #974). The rule itself — the anchored line, the two `## ` heading shapes, and the comparison
+  # between a cited id and the ids a document carries — is `lib.sh`'s, because the run's report counts the same
+  # resolution (issue #1113) and two copies of it could be falsified one at a time. The directory is the project's
   # configuration and never a literal here, which is the rule `tools/check-portability.sh` enforces.
-  local routes=0 resolved=0 r_unresolved=0 route_line doc id ids
+  local routes=0 resolved=0 r_unresolved=0 route_line route_lines doc id
   if [ "$mode" = "archived" ]; then
     echo "note C6 route: report-only on an archived change — the route is a rule of the live report"
   elif [ -z "$guide_dir" ] || [ ! -d "$root/$guide_dir" ]; then
     echo "note C6 route: no guideline directory at ${guide_dir:-<unnamed>} under $root — a route cannot resolve, so none is required"
   else
+    route_lines=$(loop_route_lines "$change")
     while IFS= read -r route_line; do
+      # A herestring over no route line carries one empty line, and an empty line is not a route: the WARN arm below is
+      # what a change that routes nothing gets.
+      [ -n "$route_line" ] || continue
       routes=$((routes+1))
       doc=$(sed -n 's/^.*LOOP-ROUTE:[[:space:]]*\([^[:space:]]*\).*$/\1/p' <<<"$route_line")
       id=$(sed -n 's/^.*§\([0-9][0-9a-z]*\).*$/\1/p' <<<"$route_line")
@@ -211,21 +222,13 @@ run_checks() { # <change> <root> <table> <scan-paths> <xml-dir> <guideline-dir> 
         echo "FAIL C6 route names a document that does not exist: $doc"
         fails=$((fails+1)); r_unresolved=$((r_unresolved+1)); continue
       fi
-      # The two heading shapes this project writes: `## 2a. Agent iteration protocol` and `## §7a Running one
-      # item` — the id is the leading number, and the shape's own separator follows it: a `.` and then whitespace,
-      # or the heading's first space after the `§`. A heading that carries neither separator (`## 7a Running one
-      # item`) and a dotted sub-number (`## 3.6 …`) carry no id (issue #974).
-      ids=$(sed -n 's/^## §\([0-9][0-9a-z]*\)[[:space:]].*$/\1/p; s/^## \([0-9][0-9a-z]*\)\.[[:space:]].*$/\1/p' "$root/$doc")
-      if grep -qxF "$id" <<<"$ids"; then
+      if loop_route_resolves "$root" "$doc" "$id"; then
         resolved=$((resolved+1))
       else
-        echo "FAIL C6 §$id does not resolve in $doc — its sections are: $(sed -n 's/^## §\([0-9][0-9a-z]*\)[[:space:]].*$/§\1/p; s/^## \([0-9][0-9a-z]*\)\.[[:space:]].*$/§\1/p' "$root/$doc" | tr '\n' ' ')"
+        echo "FAIL C6 §$id does not resolve in $doc — its sections are: $(loop_route_ids "$root/$doc" | sed 's/^/§/' | tr '\n' ' ')"
         fails=$((fails+1)); r_unresolved=$((r_unresolved+1))
       fi
-    # A **route line** is anchored: nothing but list/quote markers and space may precede it. A paragraph that
-    # quotes the form — "the report block carries `LOOP-ROUTE: …`" — is prose about the line, not the line, and
-    # reading it as one would refuse every change that documents its own convention (issue #974).
-    done < <(grep -nE '^[[:space:]>*-]*LOOP-ROUTE:' $mds 2>/dev/null || true)
+    done <<<"$route_lines"
     if [ "$routes" -eq 0 ]; then
       if [ "$route_mode" = "fail" ]; then
         echo "FAIL C6 no LOOP-ROUTE: line — the change names no guideline section its work was routed by"

@@ -1,0 +1,7 @@
+# the change's report.sh
+### report#theRouteShareIsPrinted
+PASS report#theRouteShareIsPrinted
+### report#anItemWithNoRouteIsOutsideTheCount
+PASS report#anItemWithNoRouteIsOutsideTheCount
+### report#theRouteShareNamesItsDenominator
+PASS report#theRouteShareNamesItsDenominator

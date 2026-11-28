@@ -1,0 +1,19 @@
+# the base commit's report.sh: HEAD:tools/loop/report.sh, restored byte for byte afterwards
+### report#theRouteShareIsPrinted
+report#theRouteShareIsPrinted|   the numerator is the item whose route resolves and the denominator the two items whose change carries a route: 'route: 1 of 2 item(s)' not found in: 
+--- report#theRouteShareIsPrinted[0] (exit 1)
+  the numerator is the item whose route resolves and the denominator the two items whose change carries a route: 'route: 1 of 2 item(s)' not found in: 
+FAIL report#theRouteShareIsPrinted
+loop-selftest: 1 of 1 cases failed
+### report#anItemWithNoRouteIsOutsideTheCount
+report#anItemWithNoRouteIsOutsideTheCount|   a change carrying no route line is outside the denominator: 'route: 0 of 0 item(s)' not found in: 
+--- report#anItemWithNoRouteIsOutsideTheCount[0] (exit 1)
+  a change carrying no route line is outside the denominator: 'route: 0 of 0 item(s)' not found in: 
+FAIL report#anItemWithNoRouteIsOutsideTheCount
+loop-selftest: 1 of 1 cases failed
+### report#theRouteShareNamesItsDenominator
+report#theRouteShareNamesItsDenominator|   the change the landing archived is counted from its archived copy: 'route: 1 of 1 item(s)' not found in: 
+--- report#theRouteShareNamesItsDenominator[0] (exit 1)
+  the change the landing archived is counted from its archived copy: 'route: 1 of 1 item(s)' not found in: 
+FAIL report#theRouteShareNamesItsDenominator
+loop-selftest: 1 of 1 cases failed

@@ -1,0 +1,13 @@
+loop-mutations: selected 3 of 472 records (labels: 974.1 974.2 1113.1)
+loop-mutations: scratch /home/tim/projects/NaviVeylin/.pi/tmp/loop-mutations.sqkrE6
+RED    974.1  check#aRouteSectionResolvesAgainstItsDocument   (the comparison that resolves a cited § against the `## ` headings the document carries, so any id resolves and the id a document does not carry is filed as a route (issue #974))
+       2026-11-28T07:27:23Z — case log line 1: a § the document does not have is refused: ok   C1 §references: 1 checked, 0 exempted as archived pointers
+restore 974.1 check#aRouteSectionResolvesAgainstItsDocument green again
+RED    974.2  check#aRouteSectionResolvesAgainstItsDocument   (the arm that reads a missing route as the warning the run after the rule landed needs, so the first run of a tree whose reports predate the line refuses every one of them (issue #974))
+       2026-11-28T07:27:24Z — case log line 1: a paragraph quoting the form is not a route line: ok   C1 §references: 1 checked, 0 exempted as archived pointers
+restore 974.2 check#aRouteSectionResolvesAgainstItsDocument green again
+RED    1113.1  report#theRouteShareIsPrinted   (the resolution the report counts, so every cited id resolves and a report no document carries is counted as routed (issue #1113))
+       2026-11-28T07:27:26Z — case log line 1: the numerator is the item whose route resolves and the denominator the two items whose change carries a route: 'route: 1 of 2 item(s)' not found in: route: 2 of 2 item(s) whose report routes (100.0 %) · archive: -
+restore 1113.1 report#theRouteShareIsPrinted green again
+
+red-when-mutated: 3 · not-noticed: 0 · restore-failures: 0

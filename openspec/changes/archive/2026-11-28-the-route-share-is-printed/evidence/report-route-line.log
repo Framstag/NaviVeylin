@@ -1,0 +1,9 @@
+### .pi/issue-loop/runs/2026-11-27T16:46:11Z.json
+bound: 0 of 1 items (0.0 %) · archive: -
+route: 1 of 1 item(s) whose report routes (100.0 %) · archive: -
+### .pi/issue-loop/runs/2026-11-27T22:44:20Z.json
+bound: 0 of 1 items (0.0 %) · archive: -
+route: 1 of 1 item(s) whose report routes (100.0 %) · archive: -
+### the live run, reported with no --state (its archive is .pi/issue-loop/runs/)
+bound: 0 of 0 items (-) · archive: 66 of 219 items a bound ended (30.1 %)
+route: 0 of 0 item(s) whose report routes (-) · archive: 28 of 28 (100.0 %)

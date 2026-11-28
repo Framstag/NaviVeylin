@@ -1,0 +1,17 @@
+# loop_route_resolves mutated to answer true for every id (sed on tools/loop/lib.sh)
+# sha256 of the mutated file: 9ec82cf1dfc4bdc85b58255308f8fffb1065072f9d2a8586fd3dadc82193de0b
+### check#aRouteSectionResolvesAgainstItsDocument
+----
+evidence-check: PASS: expected '1', got '0'
+FAIL check#aRouteSectionResolvesAgainstItsDocument
+loop-selftest: 1 of 1 cases failed
+### report#theRouteShareIsPrinted
+--- report#theRouteShareIsPrinted[0] (exit 1)
+  the numerator is the item whose route resolves and the denominator the two items whose change carries a route: 'route: 1 of 2 item(s)' not found in: route: 2 of 2 item(s) whose report routes (100.0 %) · archive: -
+FAIL report#theRouteShareIsPrinted
+loop-selftest: 1 of 1 cases failed
+# the same two cases after the byte-for-byte restore
+### check#aRouteSectionResolvesAgainstItsDocument
+PASS check#aRouteSectionResolvesAgainstItsDocument
+### report#theRouteShareIsPrinted
+PASS report#theRouteShareIsPrinted

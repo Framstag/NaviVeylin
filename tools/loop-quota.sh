@@ -55,6 +55,10 @@
 #   LOOP_QUOTA_SESSION_MIN_PERCENT     the short window's floor (default 15)
 #   LOOP_QUOTA_WEEKLY_MIN_PERCENT      the long window's floor (default 5)
 #   LOOP_QUOTA_PACING_RESERVE_PERCENT  the share of the long window kept back for other consumers (default 10)
+#   LOOP_QUOTA_PACING                  `off` turns the pacing line off, so only the floors below can hold (default on)
+#   LOOP_QUOTA_FINAL_WINDOW_HOURS      the hours before the reset in which the floor drops to the final one (default 0,
+#                                      which keeps the weekly floor to the end)
+#   LOOP_QUOTA_FINAL_MIN_PERCENT       the long window's floor inside that window (default: the weekly floor)
 #   LOOP_QUOTA_WEEKLY_SECONDS          the long window's length (default 604800)
 #   LOOP_QUOTA_MARGIN_SECONDS          added to a resume instant, so the run wakes after the reset (default 15)
 #   LOOP_QUOTA_TIMEOUT_SECONDS         the endpoint's own timeout (default 10)
@@ -85,6 +89,15 @@ reserve=$(num "${LOOP_QUOTA_PACING_RESERVE_PERCENT:-}" 10)
 week_seconds=$(num "${LOOP_QUOTA_WEEKLY_SECONDS:-}" 604800)
 margin=$(num "${LOOP_QUOTA_MARGIN_SECONDS:-}" 15)
 timeout=$(num "${LOOP_QUOTA_TIMEOUT_SECONDS:-}" 10)
+# The pacing line is a knob because the operator's rule for the last half-day of a window is not the one it encodes:
+# the owner's decision of 2026-11-28 keeps an **absolute** reserve until half a day before the reset and then spends the
+# window down to a final floor, so the run must be able to say "floors only, no line". Defaults keep the old shape, so
+# the self-test's eight cases and every reading already recorded stay exactly what they were.
+pacing=1
+case "${LOOP_QUOTA_PACING:-on}" in off|OFF|0|no) pacing=0 ;; esac
+final_hours=$(num "${LOOP_QUOTA_FINAL_WINDOW_HOURS:-}" 0)
+final_min=$(num "${LOOP_QUOTA_FINAL_MIN_PERCENT:-}" "$weekly_min")
+[ "$final_hours" -le "$week_seconds" ] || final_hours=0
 # A reserve of 100 keeps everything back and a window of no seconds has no line on it; both are the defaults.
 [ "$reserve" -le 100 ] || reserve=10
 [ "$week_seconds" -gt 0 ] || week_seconds=604800
@@ -128,13 +141,19 @@ program='
       | ([$elapsed0, $weekSeconds] | min) as $elapsed
       | ($elapsed / $weekSeconds * (100 - $reserve)) as $allow
       | (100 - $wl) as $used
+      # The floor the long window is held to: the absolute reserve until the final window opens, and the final floor
+      # inside it — the rule set on 2026-11-28: keep an absolute reserve of 5 % up to half a day before turn-around,
+      # then spend the complete budget, but stop shortly before it ends so no error is run into.
+      | (($wr - $now) / 3600) as $hoursLeft
+      | (if ($finalHours > 0) and ($hoursLeft <= $finalHours) then $finalMin else $weeklyMin end) as $floor
       | if $sl < $sessionMin then
           {go: false, window: "session", resume: $sr,
            why: "the session quota has \($sl)% left, below the \($sessionMin)% floor"}
-        elif $wl < $weeklyMin then
+        elif $wl < $floor then
           {go: false, window: "weekly", resume: $wr,
-           why: "the weekly quota has \($wl)% left, below the \($weeklyMin)% floor"}
-        elif ($wr > 0) and ($used > $allow) then
+           why: "the weekly quota has \($wl)% left, below the \($floor)% floor" +
+                (if $floor != $weeklyMin then " (the reserve is spent down to \($finalMin)% inside the last \($finalHours) h before the reset)" else "" end)}
+        elif ($pacing == 1) and ($wr > 0) and ($used > $allow) then
           {go: false, window: "pacing",
            resume: (if $used >= (100 - $reserve) then $wr
                     else ($weekStart + ($used * $weekSeconds / (100 - $reserve) | ceil)) end),
@@ -143,9 +162,8 @@ program='
                 + "elapsed, \($reserve)% kept back for other consumers)"}
         else
           {go: true, window: "none", notes: $notes,
-           why: "session \($sl)% (floor \($sessionMin)%) · weekly \($wl)% (floor \($weeklyMin)%) · "
-                + "\(($used * 10 | floor) / 10)% burned against a pacing line of \(($allow * 10 | floor) / 10)%"}
-        end
+           why: "session \($sl)% (floor \($sessionMin)%) · weekly \($wl)% (floor \($floor)%) · "
+                + "\(($used * 10 | floor) / 10)% burned against a pacing line of \(($allow * 10 | floor) / 10)%"}        end
     end'
 
 body=$(read_balance) || body=""
@@ -163,6 +181,7 @@ fi
 now=$(date +%s)
 decision=$(printf '%s' "$body" | jq -c --argjson now "$now" --argjson sessionMin "$session_min" \
   --argjson weeklyMin "$weekly_min" --argjson reserve "$reserve" --argjson weekSeconds "$week_seconds" \
+  --argjson pacing "$pacing" --argjson finalHours "$final_hours" --argjson finalMin "$final_min" \
   "$program" 2>/dev/null)
 if [ -z "$decision" ]; then
   printf 'quota: the balance is not the JSON this reader knows — the check is not a refusal\n'

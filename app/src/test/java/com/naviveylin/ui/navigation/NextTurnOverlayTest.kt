@@ -74,6 +74,24 @@ class NextTurnOverlayTest {
         this.destination = destination
     }
 
+    private fun motorwayLeave(destination: String? = "Essen-Zentrum"): RouteStep = RouteStep().apply {
+        kind = RouteStep.Kind.MOTORWAY_LEAVE
+        remainingDistance = 450.0
+        motorwayLeave = RouteStep.MotorwayLeave().apply {
+            from = RouteStep.Name("", "A40")
+            move = TurnType.RIGHT
+        }
+        this.destination = destination
+    }
+
+    @Test
+    fun `a motorway leave's second line carries the signposted destination`() {
+        composeRule.setContent { NextTurnOverlay(step = motorwayLeave()) }
+
+        composeRule.onNodeWithText("Leave motorway").assertIsDisplayed()
+        composeRule.onNodeWithText("towards Essen-Zentrum").assertIsDisplayed()
+    }
+
     @Test
     fun `a motorway change's second line carries the signposted destination`() {
         composeRule.setContent { NextTurnOverlay(step = motorwayChange()) }

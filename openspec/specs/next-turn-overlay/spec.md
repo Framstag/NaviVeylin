@@ -204,10 +204,11 @@ The next-turn overlay text SHALL be large enough to read from the driver seat: t
 
 ### Requirement: The second line carries the signposted destination
 
-The next-turn overlay's second line SHALL show the thing the manoeuvre leads onto. For a motorway enter or
-change that carries a signposted destination, that line SHALL include the destination beside the motorway's
-name or reference. The line SHALL keep the overlay's existing wrapping and ellipsis rules, and the value SHALL
-word the manoeuvre the way the car's instruction text words it.
+The next-turn overlay's second line SHALL show the thing the manoeuvre leads onto. For a motorway enter, change
+or leave that carries a signposted destination, that line SHALL include the destination beside the motorway's
+name or reference, or as `towards <destination>` when the manoeuvre leads onto nothing else. The line SHALL keep
+the overlay's existing wrapping and ellipsis rules, and the value SHALL word the manoeuvre the way the car's
+instruction text words it.
 
 #### Scenario: A motorway change shows the signposted destination
 
@@ -215,6 +216,13 @@ word the manoeuvre the way the car's instruction text words it.
 - **THEN** the overlay's second line SHALL read "A8 Richtung München" in German
 - **AND** the first line SHALL remain the manoeuvre alone ("Rechts halten")
 - **Case**: `app: NextTurnOverlayTest` "a motorway change's second line carries the signposted destination"
+
+#### Scenario: A motorway leave shows the signposted destination
+
+- **WHEN** the manoeuvre ahead leaves a motorway, names no street, and carries the destination "Essen-Zentrum"
+- **THEN** the overlay's second line SHALL read "towards Essen-Zentrum"
+- **AND** the first line SHALL remain the manoeuvre alone ("Leave motorway")
+- **Case**: `app: NextTurnOverlayTest` "a motorway leave's second line carries the signposted destination"
 
 #### Scenario: The second line is unchanged without a destination record
 

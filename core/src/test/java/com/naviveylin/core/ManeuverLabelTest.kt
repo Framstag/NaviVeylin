@@ -210,6 +210,51 @@ class ManeuverLabelTest {
     }
 
     @Test
+    fun `a motorway leave carries the signposted destination beside the street it leads onto`() {
+        // A leave's sign is the exit's destination, and the street the ramp leads onto words it the
+        // way the change and the entry word theirs (spec: `turn-instruction-localization` — A motorway
+        // manoeuvre names the signposted destination).
+        val leave = manoeuvre(
+            RouteStep.Kind.MOTORWAY_LEAVE, TurnType.LEFT,
+            name = "Kruppstraße", destination = "Essen-Zentrum", motorwayFrom = "A40"
+        )
+
+        assertEquals("Kruppstraße towards Essen-Zentrum", ManoeuvreLabels.leadsOnto(en, leave))
+        assertEquals(
+            "Leave motorway onto Kruppstraße towards Essen-Zentrum",
+            ManoeuvreLabels.description(en, leave)
+        )
+        // The instruction itself stays the manoeuvre alone.
+        assertEquals("Leave motorway", ManoeuvreLabels.short(en, leave))
+    }
+
+    @Test
+    fun `a motorway leave that names nothing but its sign words the sign`() {
+        // A motorway exit whose step carries the record and no street: a bare place name is not what
+        // a second line or a car target street says, so the sign is the clause.
+        val leave = manoeuvre(
+            RouteStep.Kind.MOTORWAY_LEAVE, TurnType.LEFT,
+            destination = "Dortmund-Schüren", motorwayFrom = "A45"
+        )
+
+        assertEquals("towards Dortmund-Schüren", ManoeuvreLabels.leadsOnto(en, leave))
+        assertEquals("Leave motorway towards Dortmund-Schüren", ManoeuvreLabels.description(en, leave))
+        assertEquals("Autobahn verlassen Richtung Dortmund-Schüren", ManoeuvreLabels.description(de, leave))
+    }
+
+    @Test
+    fun `a destination that repeats the target adds no towards clause`() {
+        // A way tagged `destination=A 45` must not read "A 45 towards A 45".
+        val change = manoeuvre(
+            RouteStep.Kind.MOTORWAY_CHANGE, TurnType.SLIGHTLY_RIGHT,
+            destination = "A 45", motorwayFrom = "A 40", motorwayTo = "A 45"
+        )
+
+        assertEquals("A 45", ManoeuvreLabels.leadsOnto(en, change))
+        assertEquals("Keep slightly right onto A 45", ManoeuvreLabels.description(en, change))
+    }
+
+    @Test
     fun `a plain turn does not show a destination record it carries`() {
         // The tag also sits on ways a plain turn crosses; the gate is the manoeuvre kind, not the
         // record (design D5).

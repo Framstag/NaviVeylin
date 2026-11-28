@@ -1,0 +1,26 @@
+# route essen-fwd
+# start 51.5726589 7.4649125  target 51.4533448 6.9939603  vehicle car
+# identity is '<kind> <km from the route start>': node ids, file offsets and
+# database ids are deliberately absent — an import renumbers them.
+# fields: destination = the raw record's first block, leadsOnto = the wording
+# every surface composes from the step (ManoeuvreLabels.leadsOnto).
+START 0.0 | destination=- | leadsOnto=Am Birkenbaum
+TURN 0.1 | destination=- | leadsOnto=Evinger Straße (B 54)
+NAME_CHANGE 4.1 | destination=- | leadsOnto=Münsterstraße (B 54)
+TURN 4.5 | destination=- | leadsOnto=-
+TURN 4.9 | destination=- | leadsOnto=Schützenstraße
+TURN 5.9 | destination=- | leadsOnto=Mallinckrodtstraße
+MOTORWAY_ENTER 6.4 | destination=Dortmund-Huckarde | leadsOnto=Mallinckrodtstraße towards Dortmund-Huckarde
+MOTORWAY_CHANGE 10.2 | destination=Frankfurt am Main | leadsOnto=A 45 towards Frankfurt am Main
+NAME_CHANGE 11.6 | destination=- | leadsOnto=A 45
+MOTORWAY_CHANGE 13.1 | destination=Essen | leadsOnto=A 40 towards Essen
+NAME_CHANGE 13.9 | destination=- | leadsOnto=Ruhrschnellweg (A 40)
+MOTORWAY_LEAVE 41.3 | destination=Essen-Zentrum | leadsOnto=towards Essen-Zentrum
+NAME_CHANGE 42.0 | destination=- | leadsOnto=Kruppstraße (K 8)
+TURN 42.5 | destination=- | leadsOnto=Friedrichstraße (B 224)
+NAME_CHANGE 42.9 | destination=- | leadsOnto=Hans-Böckler-Straße (B 224)
+TURN 43.4 | destination=- | leadsOnto=Frohnhauser Straße (L 64)
+TURN 43.4 | destination=- | leadsOnto=Frohnhauser Straße (L 64)
+TURN 43.7 | destination=- | leadsOnto=Westendhof
+TURN 43.9 | destination=- | leadsOnto=-
+TARGET 43.9 | destination=- | leadsOnto=-

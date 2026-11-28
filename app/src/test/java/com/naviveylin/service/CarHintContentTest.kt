@@ -30,6 +30,7 @@ class CarHintContentTest {
             R.string.nav_keep_right -> "Keep right"
             R.string.nav_towards -> "towards ${args[0]}"
             R.string.nav_start -> "Start"
+            R.string.nav_leave_motorway -> "Leave motorway"
             R.string.nav_hint_neutral -> "Navigation active"
             R.string.nav_hint_distance_eta -> "${args[0]} · ${args[1]}"
             else -> "res:$resId"
@@ -54,6 +55,35 @@ class CarHintContentTest {
             move = TurnType.RIGHT
         }
         this.destination = destination
+    }
+
+    private fun motorwayLeave(destination: String? = "Essen-Zentrum") = RouteStep().apply {
+        kind = RouteStep.Kind.MOTORWAY_LEAVE
+        remainingDistance = 450.0
+        motorwayLeave = RouteStep.MotorwayLeave().apply {
+            from = RouteStep.Name("", "A40")
+            move = TurnType.RIGHT
+        }
+        this.destination = destination
+    }
+
+    @Test
+    fun aMotorwayLeavesSecondaryTextCarriesTheSignpostedDestination() {
+        // The exit's sign is what tells two exits of one junction apart, and the hint words it through
+        // the same gate the overlay and the car's target street use (spec: `auto-navigation-hints` —
+        // The car hint names the signposted destination).
+        val state = NavigationState(
+            isNavigating = true,
+            nextStep = motorwayLeave(),
+            etaMillis = 1_700_000_000_000L
+        )
+
+        val hint = NavigationNotificationContentFormatter.carHint(
+            state, resolver, etaClock = { "14:32" }, locale = Locale.US
+        )
+
+        assertEquals("Leave motorway", hint?.title)
+        assertEquals("450 m · 14:32 · towards Essen-Zentrum", hint?.text)
     }
 
     @Test

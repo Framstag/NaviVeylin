@@ -591,10 +591,11 @@ glyph. The system SHALL NOT present a number-bearing type without a number.
 
 ### Requirement: The target street carries the signposted destination
 
-The instruction panel's target street SHALL be the thing the manoeuvre leads onto, and for a motorway enter or
-change that carries a signposted destination it SHALL include the destination beside the motorway's name or
-reference. It SHALL word the manoeuvre exactly as the phone's second line words it (label parity), and SHALL
-keep the manoeuvre instruction itself free of the destination.
+The instruction panel's target street SHALL be the thing the manoeuvre leads onto, and for a motorway enter,
+change or leave that carries a signposted destination it SHALL include the destination beside the motorway's
+name or reference, or as `towards <destination>` when the manoeuvre leads onto nothing else. It SHALL word the
+manoeuvre exactly as the phone's second line words it (label parity), and SHALL keep the manoeuvre instruction
+itself free of the destination.
 
 #### Scenario: The current step's target street carries the destination
 
@@ -602,6 +603,13 @@ keep the manoeuvre instruction itself free of the destination.
 - **THEN** the step's instruction SHALL be the manoeuvre wording alone ("Rechts halten")
 - **AND** its target street SHALL read "A8 Richtung München" in German
 - **Case**: `auto: NavigationTemplateMapperTest` "the current motorway step's road carries the destination"
+
+#### Scenario: A motorway leave's target street carries the destination
+
+- **WHEN** the current step leaves a motorway, names no street, and carries the destination "Essen-Zentrum"
+- **THEN** the step's instruction SHALL be the manoeuvre wording alone ("Leave motorway")
+- **AND** its target street SHALL read "towards Essen-Zentrum"
+- **Case**: `auto: NavigationTemplateMapperTest` "a motorway leave's road carries the destination"
 
 #### Scenario: The next step carries its own destination
 

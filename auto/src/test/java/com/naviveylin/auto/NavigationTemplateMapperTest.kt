@@ -275,6 +275,34 @@ class NavigationTemplateMapperTest {
             this.destination = destination
         }
 
+    /** A motorway leave off [from], the manoeuvre an exit's sign names. */
+    private fun motorwayLeaveStep(
+        destination: String? = "Essen-Zentrum",
+        from: String = "A40"
+    ) =
+        RouteStep().apply {
+            kind = RouteStep.Kind.MOTORWAY_LEAVE
+            remainingDistance = 350.0
+            distanceFromStart = 350.0
+            motorwayLeave = RouteStep.MotorwayLeave().apply {
+                this.from = RouteStep.Name("", from)
+                move = TurnType.RIGHT
+            }
+            this.destination = destination
+        }
+
+    @Test
+    fun `a motorway leave's road carries the destination`() {
+        // The exit's sign reaches the host's target street through the same `:core` function the
+        // change uses (spec: auto/navigation-view — The target street carries the destination).
+        val step = NavigationTemplateMapper.stepForStep(
+            motorwayLeaveStep(), testIcon, resolver = resolver
+        )
+
+        assertEquals("Leave motorway", step.cue.toString())
+        assertEquals("towards Essen-Zentrum", step.road.toString())
+    }
+
     @Test
     fun `the current motorway step's road carries the destination`() {
         // The cue stays the manoeuvre alone; the road — the target the host draws under it — carries

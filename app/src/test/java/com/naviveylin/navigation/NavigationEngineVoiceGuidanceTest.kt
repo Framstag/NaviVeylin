@@ -230,11 +230,12 @@ class NavigationEngineVoiceGuidanceTest {
     }
 
     /**
-     * Spec scenario: A destination record on a manoeuvre that is not a motorway enter or change stays
-     * unspoken. The same native samples word a motorway leave, which carries no destination clause.
+     * Spec scenario: A motorway leave's spoken instruction names its signposted destination. The exit's
+     * sign is what tells two exits of one junction apart, and the leave words it through the same gate
+     * the screens use.
      */
     @Test
-    fun aMotorwayLeaveKeepsItsDestinationUnspoken() {
+    fun aMotorwayLeaveNamesItsDestination() {
         val client = FakeOSMScoutClient().apply { routeToDeliver = routeEntry() }
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         val output = RecordingVoiceOutput()
@@ -245,6 +246,34 @@ class NavigationEngineVoiceGuidanceTest {
 
         client.navigationListener!!.onNextRouteStep(
             motorwayStep(RouteStep.Kind.MOTORWAY_LEAVE, "München")
+        )
+        drain()
+        client.navigationListener!!.onVoiceInstruction(motorwaySequence)
+        await { output.spoken.isNotEmpty() }
+
+        assertEquals(
+            listOf("After 300 meters leave the motorway to the right towards München"),
+            output.spoken
+        )
+    }
+
+    /**
+     * Spec scenario: A destination record on a manoeuvre that is not a motorway manoeuvre stays
+     * unspoken. The same native samples word a plain turn, whose way carries a destination tag the
+     * manoeuvre does not word.
+     */
+    @Test
+    fun aPlainTurnKeepsItsDestinationUnspoken() {
+        val client = FakeOSMScoutClient().apply { routeToDeliver = routeEntry() }
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val output = RecordingVoiceOutput()
+        val engine = voiceEngine(client, output, context)
+
+        engine.acquire(52.5200, 13.4050, 52.5230, 13.4080, Vehicle.CAR)
+        await { engine.state.value.isNavigating }
+
+        client.navigationListener!!.onNextRouteStep(
+            motorwayStep(RouteStep.Kind.TURN, "München")
         )
         drain()
         client.navigationListener!!.onVoiceInstruction(motorwaySequence)

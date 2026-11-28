@@ -1,0 +1,27 @@
+# route essen-rev
+# start 51.4533448 6.9939603  target 51.5726589 7.4649125  vehicle car
+# identity is '<kind> <km from the route start>': node ids, file offsets and
+# database ids are deliberately absent — an import renumbers them.
+# fields: destination = the raw record's first block, leadsOnto = the wording
+# every surface composes from the step (ManoeuvreLabels.leadsOnto).
+START 0.0 | destination=- | leadsOnto=-
+TURN 0.0 | destination=- | leadsOnto=Westendhof
+TURN 0.2 | destination=- | leadsOnto=Frohnhauser Straße (L 64)
+TURN 0.4 | destination=- | leadsOnto=Frohnhauser Straße
+NAME_CHANGE 0.5 | destination=- | leadsOnto=Hans-Böckler-Straße (B 224)
+NAME_CHANGE 0.9 | destination=- | leadsOnto=Friedrichstraße (B 224)
+TURN 1.4 | destination=- | leadsOnto=Friedrichstraße (B 224)
+TURN 1.4 | destination=- | leadsOnto=Holsterhauser Straße (K 8)
+TURN 1.4 | destination=- | leadsOnto=Kruppstraße (K 8)
+MOTORWAY_ENTER 1.9 | destination=Dortmund | leadsOnto=A 40 towards Dortmund
+NAME_CHANGE 2.7 | destination=- | leadsOnto=A 40
+MOTORWAY_CHANGE 30.0 | destination=A 45 | leadsOnto=A 45
+NAME_CHANGE 31.3 | destination=- | leadsOnto=A 45
+MOTORWAY_CHANGE 32.9 | destination=Dortmund-Marten | leadsOnto=Mallinckrodtstraße towards Dortmund-Marten
+MOTORWAY_LEAVE 37.4 | destination=- | leadsOnto=Mallinckrodtstraße (K 16)
+TURN 38.0 | destination=- | leadsOnto=Schützenstraße
+TURN 39.0 | destination=- | leadsOnto=Immermannstraße
+TURN 39.3 | destination=- | leadsOnto=Münsterstraße (B 54)
+NAME_CHANGE 39.8 | destination=- | leadsOnto=Evinger Straße (B 54)
+TURN 43.9 | destination=- | leadsOnto=Am Birkenbaum
+TARGET 43.9 | destination=- | leadsOnto=-

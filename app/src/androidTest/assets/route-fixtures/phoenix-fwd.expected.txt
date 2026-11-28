@@ -1,0 +1,22 @@
+# route phoenix-fwd
+# start 51.5726589 7.4649125  target 51.4918664 7.5045441  vehicle car
+# identity is '<kind> <km from the route start>': node ids, file offsets and
+# database ids are deliberately absent — an import renumbers them.
+# fields: destination = the raw record's first block, leadsOnto = the wording
+# every surface composes from the step (ManoeuvreLabels.leadsOnto).
+START 0.0 | destination=- | leadsOnto=Am Birkenbaum
+TURN 0.1 | destination=- | leadsOnto=Evinger Straße (B 54)
+ROUNDABOUT_ENTER 1.1 | destination=- | leadsOnto=-
+ROUNDABOUT_LEAVE 1.1 | destination=- | leadsOnto=Evinger Straße (B 54)
+NAME_CHANGE 2.5 | destination=- | leadsOnto=Dortmunder Straße (B 54)
+MOTORWAY_ENTER 2.6 | destination=Dortmund | leadsOnto=B 236 towards Dortmund
+NAME_CHANGE 2.6 | destination=Dortmund | leadsOnto=B 236
+MOTORWAY_LEAVE 14.1 | destination=Dortmund-Schüren | leadsOnto=towards Dortmund-Schüren
+TURN 14.4 | destination=- | leadsOnto=Am Remberg
+TURN 14.8 | destination=- | leadsOnto=Am Remberg
+NAME_CHANGE 15.6 | destination=- | leadsOnto=Weingartenstraße
+NAME_CHANGE 16.1 | destination=- | leadsOnto=Faßstraße (L 672)
+TURN 16.3 | destination=- | leadsOnto=Seekante
+NAME_CHANGE 16.3 | destination=- | leadsOnto=Hörder Hafenstraße
+TURN 16.5 | destination=- | leadsOnto=Hörder Hafenstraße
+TARGET 16.6 | destination=- | leadsOnto=-

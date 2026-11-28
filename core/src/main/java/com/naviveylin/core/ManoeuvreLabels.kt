@@ -50,8 +50,17 @@ object ManoeuvreLabels {
             RouteStep.Kind.ROUNDABOUT_LEAVE ->
                 resolver.get(R.string.nav_exit_onto, manoeuvre.roundaboutExit ?: 0, name)
             RouteStep.Kind.MOTORWAY_ENTER -> resolver.get(R.string.nav_enter_onto, name)
-            RouteStep.Kind.MOTORWAY_CHANGE, RouteStep.Kind.MOTORWAY_LEAVE ->
-                resolver.get(R.string.nav_keep_onto, short, name)
+            RouteStep.Kind.MOTORWAY_CHANGE -> resolver.get(R.string.nav_keep_onto, short, name)
+            // A leave may name nothing but its sign, and "Leave motorway onto towards Essen" is not
+            // a sentence: the sign becomes the clause itself.
+            RouteStep.Kind.MOTORWAY_LEAVE ->
+                if (compositionTarget(manoeuvre) == null) {
+                    signDestination(manoeuvre)
+                        ?.let { "$short ${resolver.get(R.string.nav_towards, it)}" }
+                        ?: short
+                } else {
+                    resolver.get(R.string.nav_keep_onto, short, name)
+                }
             RouteStep.Kind.NAME_CHANGE -> short
             RouteStep.Kind.TURN -> resolver.get(R.string.nav_turn_into, short, name)
             RouteStep.Kind.INFORMATIVE, RouteStep.Kind.UNKNOWN -> short
@@ -60,32 +69,46 @@ object ManoeuvreLabels {
 
     /**
      * The thing this manoeuvre leads onto: the street it names, or the motorway a motorway
-     * manoeuvre leads onto — plus, for a motorway enter or change that carries a signposted
-     * destination, that destination beside it ("A8 Richtung München"). The clause is a `:core`
-     * resource, so every surface words the manoeuvre alike (spec: `turn-instruction-localization` —
-     * A motorway manoeuvre names the signposted destination).
+     * manoeuvre leads onto — plus, for a motorway manoeuvre that carries a signposted destination,
+     * that destination beside it ("A8 Richtung München"). The clause is a `:core` resource, so every
+     * surface words the manoeuvre alike (spec: `turn-instruction-localization` — A motorway
+     * manoeuvre names the signposted destination).
+     *
+     * A leave that names nothing but its sign (a motorway exit whose step carries the record and no
+     * street) leads onto `towards <destination>`: a bare place name is not what a second line or a
+     * car target street says. A record that merely repeats the target (a way tagged
+     * `destination=A 45`) adds no clause — "A 45 towards A 45" says nothing.
      *
      * `null` when the manoeuvre leads onto nothing it can name, so no surface ends in a dangling
      * preposition.
      */
     fun leadsOnto(resolver: StringResolver, manoeuvre: Manoeuvre): String? {
-        val target = compositionTarget(manoeuvre) ?: return null
-        val destination = manoeuvre.destination
-        if (destination == null || !carriesDestination(manoeuvre)) return target
-        return "$target ${resolver.get(R.string.nav_towards, destination)}"
+        val sign = signDestination(manoeuvre)
+        val target = compositionTarget(manoeuvre)
+        return when {
+            target == null -> sign?.let { resolver.get(R.string.nav_towards, it) }
+            sign == null -> target
+            sign == target -> target
+            else -> "$target ${resolver.get(R.string.nav_towards, sign)}"
+        }
     }
 
     /**
-     * Whether the manoeuvre's signposted destination is a wording input for it: only a motorway
-     * enter or change that carries the record, never a plain turn whose way happens to be tagged
+     * Whether the manoeuvre's signposted destination is a wording input for it: a motorway enter,
+     * change or leave that carries the record, never a plain turn whose way happens to be tagged
      * (design D5 of `motorway-destination-hint`).
      */
     fun carriesDestination(manoeuvre: Manoeuvre): Boolean =
         manoeuvre.destination != null &&
             (
                 manoeuvre.kind == RouteStep.Kind.MOTORWAY_ENTER ||
-                    manoeuvre.kind == RouteStep.Kind.MOTORWAY_CHANGE
+                    manoeuvre.kind == RouteStep.Kind.MOTORWAY_CHANGE ||
+                    manoeuvre.kind == RouteStep.Kind.MOTORWAY_LEAVE
                 )
+
+    /** The record this manoeuvre words, or `null` when its kind does not word one. */
+    private fun signDestination(manoeuvre: Manoeuvre): String? =
+        manoeuvre.destination?.takeIf { carriesDestination(manoeuvre) }
 
     /**
      * The name the row composes: the motorway a motorway manoeuvre leads onto, else the street the

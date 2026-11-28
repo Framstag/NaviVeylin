@@ -1,0 +1,9 @@
+# The routes this project measures: coordinate pairs handed over by the owner (2026-11-28).
+# Format: <label> <startLat> <startLon> <targetLat> <targetLon>
+#
+# Both directions, because the owner reports the missing signposted destination in both:
+# start -> end and end -> start. Map data: europe/germany/North Rhine-Westphalia.
+phoenix-fwd  51.5726589 7.4649125 51.4918664 7.5045441
+phoenix-rev  51.4918664 7.5045441 51.5726589 7.4649125
+essen-fwd    51.5726589 7.4649125 51.4533448 6.9939603
+essen-rev    51.4533448 6.9939603 51.5726589 7.4649125
